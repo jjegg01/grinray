@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/777321204.svg)](https://zenodo.org/doi/10.5281/zenodo.10869964)
+
 GRINRAY:
 A raytracing framework for optical force simulation
 with support for gradient index materials 
