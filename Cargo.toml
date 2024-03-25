@@ -1,0 +1,21 @@
+[package]
+name = "grinray"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+
+[lib]
+name = "grinray"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+pyo3 = { version = "0.18", features = ["extension-module"] }
+numpy = "0.18"
+cgmath = "0.18.0"
+slotmap = "1.0.6"
+bytemuck = "1.13.1"
+rand = "0.8.5"
+rand_xoshiro = "0.6.0"
+rand_distr = "0.4.3"
+ndarray-npy = { version = "0.8.1", default-features = false }
+ndarray = { version = "0.15.6", default-features = false }

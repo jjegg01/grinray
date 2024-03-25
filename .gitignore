@@ -1,0 +1,9 @@
+/target
+.pyenv
+Cargo.lock
+*.pdf
+*.png
+*.bin
+*.npy
+perf.data
+perf.data.old
