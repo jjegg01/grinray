@@ -1,4 +1,5 @@
 [![DOI](https://zenodo.org/badge/777321204.svg)](https://zenodo.org/doi/10.5281/zenodo.10869964)
+[![Funding provided by DFG Project ID 433682494 - SFB 1459](https://img.shields.io/badge/DFG%20funded-Project%20ID%20433682494%20--%20SFB%201459%20-blue)](https://gepris.dfg.de/gepris/projekt/433682494?context=projekt&task=showDetail&id=433682494&)
 
 GRINRAY:
 A raytracing framework for optical force simulation
