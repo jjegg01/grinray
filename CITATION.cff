@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: GRINRAY
+authors:
+  - family-names: Jeggle
+    given-names: Julian
+    orcid: "https://orcid.org/0000-0001-7220-6081"
+  - family-names: Wittkowski
+    given-names: Raphael
+    orcid: "https://orcid.org/0000-0003-4881-9173"
+version: 0.1.0
+date-released: "2024-03-25"
+license: MPL-2.0
+repository-code: https://github.com/jjegg01/grinray
+identifiers:
+  - description: This is the collection of archived snapshots of all versions of GRINRAY
+    type: doi
+    value: 10.5281/zenodo.10869964
+  - description: This is the archived snapshot of version 0.3.0 of GRINRAY
+    type: doi
+    value: 10.5281/zenodo.10869965
