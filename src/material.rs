@@ -2,28 +2,36 @@
 
 use std::f64::consts::PI;
 
-use rand_distr::Distribution;
 use cgmath::{ElementWise, InnerSpace, Matrix3, MetricSpace, SquareMatrix, Vector2, Vector3, Zero};
+use rand_distr::Distribution;
 use rand_xoshiro::Xoshiro256Plus;
 
-use crate::{ray::{RTIntersection, Ray, RayGraphicsContext}, scene::RTObject, TraceEvent, Tracer};
+use crate::{
+    ray::{RTIntersection, Ray, RayGraphicsContext},
+    scene::RTObject,
+    TraceEvent, Tracer,
+};
 
 /// Lower precision from Vector3<f64> to Vector3<f32>
 fn vec3_64_to_32(v: &Vector3<f64>) -> Vector3<f32> {
-    Vector3 { x: v.x as f32, y: v.y as f32, z: v.z as f32 }
+    Vector3 {
+        x: v.x as f32,
+        y: v.y as f32,
+        z: v.z as f32,
+    }
 }
 
 /// Calculate next ray for the interaction between a Lambertian diffusor and a ray
-fn lambert_next_ray(intersection: &RTIntersection, initial_depth: usize, rng: &mut Xoshiro256Plus) -> Option<Ray> {
+fn lambert_next_ray(
+    intersection: &RTIntersection,
+    initial_depth: usize,
+    rng: &mut Xoshiro256Plus,
+) -> Option<Ray> {
     if initial_depth == 0 {
         return None;
     }
     let distr = rand_distr::Normal::new(0.0, 1.0).unwrap();
-    let unit_random = Vector3::new(
-        distr.sample(rng),
-        distr.sample(rng),
-        distr.sample(rng)
-    );
+    let unit_random = Vector3::new(distr.sample(rng), distr.sample(rng), distr.sample(rng));
     Some(Ray {
         start: intersection.point,
         dir: (intersection.normal + unit_random).normalize(),
@@ -35,43 +43,83 @@ fn lambert_next_ray(intersection: &RTIntersection, initial_depth: usize, rng: &m
 pub trait Material<T: Tracer> {
     /// Interaction function for graphical raytracing, i.e., this function should return the color
     /// produced by the specified ray intersection
-    fn interact(&self, ray: &Ray, intersection: &RTIntersection, object: &(dyn RTObject + Send + Sync), ctx: &mut RayGraphicsContext<T>, tracer: &mut T, trace: T::TraceID) -> Vector3<f32>;
+    fn interact(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        object: &(dyn RTObject + Send + Sync),
+        ctx: &mut RayGraphicsContext<T>,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Vector3<f32>;
 
     /// Interaction function for non-graphical raytracing, i.e., given the parameters of a ray
     /// entering an object, this function should compute the outgoing ray
     /// If more than one output ray is produced by the interaction (e.g., in the case of diffusive
     /// materials), this function should use the provided random number generator to sample the
     /// distribution of output rays
-    fn next_ray(&self, ray: &Ray, intersection: &RTIntersection, object: &(dyn RTObject + Send + Sync), rng: &mut Xoshiro256Plus, tracer: &mut T, trace: T::TraceID) -> Option<Ray>;
+    fn next_ray(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        object: &(dyn RTObject + Send + Sync),
+        rng: &mut Xoshiro256Plus,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Option<Ray>;
 }
 
 /// Simple material that is a perfect Lambertian diffusor
 #[derive(Clone)]
 pub struct SimpleMaterial {
     /// Color tint of the material (multiplicative)
-    color: Vector3<f32>
+    color: Vector3<f32>,
 }
 
 impl SimpleMaterial {
     /// Create a new simple material with a solid color (color is multiplied with ray color during
     /// raytracing)
     pub fn new(color: Vector3<f32>) -> Self {
-        Self {
-            color,
-        }
+        Self { color }
     }
 }
 
 impl<T: Tracer> Material<T> for SimpleMaterial {
-    fn interact(&self, ray: &Ray, intersection: &RTIntersection, object: &(dyn RTObject + Send + Sync), ctx: &mut RayGraphicsContext<T>, tracer: &mut T, trace: T::TraceID) -> Vector3<f32> {
-        let next_ray = <SimpleMaterial as Material<T>>::next_ray(self, ray, intersection, object, &mut ctx.rng, tracer, trace);
+    fn interact(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        object: &(dyn RTObject + Send + Sync),
+        ctx: &mut RayGraphicsContext<T>,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Vector3<f32> {
+        let next_ray = <SimpleMaterial as Material<T>>::next_ray(
+            self,
+            ray,
+            intersection,
+            object,
+            &mut ctx.rng,
+            tracer,
+            trace,
+        );
         match next_ray {
-            Some(next_ray) => self.color.mul_element_wise(next_ray.get_color(ctx, tracer, trace)),
+            Some(next_ray) => self
+                .color
+                .mul_element_wise(next_ray.get_color(ctx, tracer, trace)),
             None => Vector3::zero(),
         }
     }
 
-    fn next_ray(&self, ray: &Ray, intersection: &RTIntersection, _: &(dyn RTObject + Send + Sync), rng: &mut Xoshiro256Plus, tracer: &mut T, trace: T::TraceID) -> Option<Ray> {
+    fn next_ray(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        _: &(dyn RTObject + Send + Sync),
+        rng: &mut Xoshiro256Plus,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Option<Ray> {
         tracer.add_point(trace, TraceEvent::Reflection, intersection.point);
         lambert_next_ray(intersection, ray.depth - 1, rng)
     }
@@ -82,7 +130,7 @@ impl<T: Tracer> Material<T> for SimpleMaterial {
 pub struct CheckerboardMaterial {
     color: Vector3<f32>,
     origin: Vector3<f32>,
-    direction: Vector3<f32>
+    direction: Vector3<f32>,
 }
 
 impl CheckerboardMaterial {
@@ -98,15 +146,41 @@ impl CheckerboardMaterial {
 }
 
 impl<T: Tracer> Material<T> for CheckerboardMaterial {
-    fn interact(&self, ray: &Ray, intersection: &RTIntersection, object: &(dyn RTObject + Send + Sync), ctx: &mut RayGraphicsContext<T>, tracer: &mut T, trace: T::TraceID) -> Vector3<f32> {
-        let next_ray = <CheckerboardMaterial as Material<T>>::next_ray(self, ray, intersection, object, &mut ctx.rng, tracer, trace);
+    fn interact(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        object: &(dyn RTObject + Send + Sync),
+        ctx: &mut RayGraphicsContext<T>,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Vector3<f32> {
+        let next_ray = <CheckerboardMaterial as Material<T>>::next_ray(
+            self,
+            ray,
+            intersection,
+            object,
+            &mut ctx.rng,
+            tracer,
+            trace,
+        );
         match next_ray {
-            Some(next_ray) => self.color.mul_element_wise(next_ray.get_color(ctx, tracer, trace)),
+            Some(next_ray) => self
+                .color
+                .mul_element_wise(next_ray.get_color(ctx, tracer, trace)),
             None => Vector3::zero(),
         }
     }
 
-    fn next_ray(&self, ray: &Ray, intersection: &RTIntersection, _: &(dyn RTObject + Send + Sync), rng: &mut Xoshiro256Plus, tracer: &mut T, trace: T::TraceID) -> Option<Ray> {
+    fn next_ray(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        _: &(dyn RTObject + Send + Sync),
+        rng: &mut Xoshiro256Plus,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Option<Ray> {
         // Calculate checkerboard base color
         let point = vec3_64_to_32(&intersection.point);
         let normal = vec3_64_to_32(&intersection.normal);
@@ -120,8 +194,7 @@ impl<T: Tracer> Material<T> for CheckerboardMaterial {
             // Diffuse reflection on "white" tiles
             tracer.add_point(trace, TraceEvent::Reflection, intersection.point);
             lambert_next_ray(intersection, ray.depth - 1, rng)
-        }
-        else {
+        } else {
             // No exit ray on "black" tiles
             tracer.add_point(trace, TraceEvent::End, intersection.point);
             None
@@ -140,7 +213,7 @@ pub struct FresnelMaterial {
 
 enum FresnelInteractionType {
     Reflection(Ray),
-    Refraction(Ray)
+    Refraction(Ray),
 }
 
 // When you don't care about the interaction type, you can just into() the result into a normal ray
@@ -155,22 +228,25 @@ impl Into<Ray> for FresnelInteractionType {
 
 impl FresnelMaterial {
     /// Create a new material implementing the Fresnel equations for light-matter interaction
-    /// 
+    ///
     /// You must specify the refractive index of the material itself *and* of the surrounding medium
     pub fn new(index: f64, outer_index: f64) -> Self {
-        Self {
-            index, outer_index
-        }
+        Self { index, outer_index }
     }
 
-    fn fresnel_interaction(index: f64, outer_index: f64, ray: &Ray, intersection: &RTIntersection, rng: &mut Xoshiro256Plus) -> FresnelInteractionType {
+    fn fresnel_interaction(
+        index: f64,
+        outer_index: f64,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        rng: &mut Xoshiro256Plus,
+    ) -> FresnelInteractionType {
         // Get refractive indices on the incoming and outgoing side of the interface
         // as well as "canonical" normal vector that points towards the incoming ray
         let (n_in, n_out, normal) = if ray.dir.dot(intersection.normal) < 0. {
             // Ray entering object, i.e. surface normal points towards incoming ray
             (outer_index, index, intersection.normal)
-        }
-        else {
+        } else {
             // Ray leaving object
             (index, outer_index, -intersection.normal)
         };
@@ -184,13 +260,17 @@ impl FresnelMaterial {
                 start: intersection.point,
                 dir,
                 depth: ray.depth - 1,
-            })
+            });
         }
         let cosine_term = l_dot_n; // Dot product gives cosine of incident angle
         let sine_term = (1. - index_ratio * index_ratio * (1. - l_dot_n * l_dot_n)).sqrt(); // 1 - cos^2 = sin
-        // Fresnel equations
-        let reflectance_s = ((index_ratio * (-cosine_term) - sine_term) / (index_ratio * (-cosine_term) + sine_term) ).powf(2.);
-        let reflectance_p = ((index_ratio * sine_term - (-cosine_term)) / (index_ratio * sine_term + (-cosine_term)) ).powf(2.);
+                                                                                            // Fresnel equations
+        let reflectance_s = ((index_ratio * (-cosine_term) - sine_term)
+            / (index_ratio * (-cosine_term) + sine_term))
+            .powf(2.);
+        let reflectance_p = ((index_ratio * sine_term - (-cosine_term))
+            / (index_ratio * sine_term + (-cosine_term)))
+            .powf(2.);
         // TODO: track polarization
         let reflectance = (reflectance_p + reflectance_s) / 2.;
         // -- Monte-Carlo tracing --
@@ -202,8 +282,7 @@ impl FresnelMaterial {
                 dir,
                 depth: ray.depth - 1,
             })
-        }
-        else {
+        } else {
             let dir = index_ratio * ray.dir - (index_ratio * cosine_term + sine_term) * normal;
             // Refraction
             FresnelInteractionType::Refraction(Ray {
@@ -216,16 +295,41 @@ impl FresnelMaterial {
 }
 
 impl<T: Tracer> Material<T> for FresnelMaterial {
-    fn interact(&self, ray: &Ray, intersection: &RTIntersection, object: &(dyn RTObject + Send + Sync), ctx: &mut RayGraphicsContext<T>, tracer: &mut T, trace: T::TraceID) -> Vector3<f32> {
+    fn interact(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        object: &(dyn RTObject + Send + Sync),
+        ctx: &mut RayGraphicsContext<T>,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Vector3<f32> {
         // TODO: handle rays originating WITHIN the object
         if ray.dir.dot(intersection.normal) > 0. {
             unimplemented!("Ray may not start inside a Fresnel material (yet)")
         }
-        <FresnelMaterial as Material<T>>::next_ray(self, ray, intersection, object, &mut ctx.rng, tracer, trace).map(|ray| ray.get_color(ctx, tracer, trace))
-            .unwrap_or(Vector3::zero())
+        <FresnelMaterial as Material<T>>::next_ray(
+            self,
+            ray,
+            intersection,
+            object,
+            &mut ctx.rng,
+            tracer,
+            trace,
+        )
+        .map(|ray| ray.get_color(ctx, tracer, trace))
+        .unwrap_or(Vector3::zero())
     }
 
-    fn next_ray(&self, ray: &Ray, intersection: &RTIntersection, object: &(dyn RTObject + Send + Sync), rng: &mut Xoshiro256Plus, tracer: &mut T, trace: T::TraceID) -> Option<Ray> {
+    fn next_ray(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        object: &(dyn RTObject + Send + Sync),
+        rng: &mut Xoshiro256Plus,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Option<Ray> {
         // Keep track of the current ray
         let mut ray = ray.clone();
         let mut intersection = intersection.clone();
@@ -240,7 +344,8 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                 tracer.add_point(trace, TraceEvent::End, intersection.point);
                 return None;
             }
-            match Self::fresnel_interaction(self.index, self.outer_index, &ray, &intersection, rng) {
+            match Self::fresnel_interaction(self.index, self.outer_index, &ray, &intersection, rng)
+            {
                 FresnelInteractionType::Reflection(next_ray) => {
                     tracer.add_point(trace, TraceEvent::Reflection, intersection.point);
                     // Inner reflections bounce on the inner surface
@@ -250,9 +355,9 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                     }
                     // Outer reflections don't enter the object at all
                     else {
-                        break Some(next_ray)
+                        break Some(next_ray);
                     }
-                },
+                }
                 FresnelInteractionType::Refraction(next_ray) => {
                     tracer.add_point(trace, TraceEvent::Refraction, intersection.point);
                     // First refraction enters the object
@@ -263,9 +368,9 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                     }
                     // Second refractions exits the object
                     else {
-                        break Some(next_ray)
+                        break Some(next_ray);
                     }
-                },
+                }
             }
         }
     }
@@ -280,7 +385,7 @@ pub struct LinearGRINFresnelMaterial {
     gradient_dir: Vector3<f64>,
     outer_index: f64,
     /// Rotation to the GRIN reference frame where y-axis is the direction of the gradient
-    reference_rotation: Matrix3<f64>
+    reference_rotation: Matrix3<f64>,
 }
 
 // Lower limit for the ray direction component perpendicular to the material gradient.
@@ -296,12 +401,12 @@ const LINEAR_GRIN_ERROR: f64 = 1e-4;
 // In concave geometries, one can "miss" parts of the surface when only casting a straigt
 // ray at the start of each curved path segment. We can mitigate this by limiting the
 // distance we make in one step based on the amout of curvature of the ray. This value
-// indicates the (approximate) maximum of 
+// indicates the (approximate) maximum of
 const LINEAR_GRIN_ANGULAR_DEVIATION_THRESHOLD: f64 = 2. * PI * 1e-2;
 
 // NOTE: We use a special coordinate system for analytically predicting the ray path in
 // GRIN materials with a linear gradient. Here, the y-axis is defined by the direction
-// of the gradient (with higher indices towards the positive axis) 
+// of the gradient (with higher indices towards the positive axis)
 impl LinearGRINFresnelMaterial {
     fn calc_reference_rotation(gradient_dir: Vector3<f64>) -> Matrix3<f64> {
         // Pre-calculate rotation matrix to align the gradient to the y-axis
@@ -321,7 +426,7 @@ impl LinearGRINFresnelMaterial {
     }
 
     /// Create a new Fresnel material with a refractive index that varies linearly in space
-    /// 
+    ///
     /// Requires the refractive index at the reference point of the geometric object you assign this
     /// material to, the gradient of the refractive index (i.e., direction and strength of the
     /// spatial variation) and the refractive index of the surrounding medium.
@@ -334,7 +439,7 @@ impl LinearGRINFresnelMaterial {
             gradient_strength,
             gradient_dir,
             outer_index,
-            reference_rotation
+            reference_rotation,
         }
     }
 
@@ -352,7 +457,8 @@ impl LinearGRINFresnelMaterial {
 
     // Get refractive index at a specific point in space (needs reference point from geometry)
     fn index_at_point(&self, point: &Vector3<f64>, reference_point: &Vector3<f64>) -> f64 {
-        self.reference_index + self.gradient_strength * self.gradient_dir.dot(point - reference_point)
+        self.reference_index
+            + self.gradient_strength * self.gradient_dir.dot(point - reference_point)
     }
 
     // Analytical ray trajectory for position and tangent at a given arc length in GRIN materials
@@ -364,11 +470,14 @@ impl LinearGRINFresnelMaterial {
         // TODO: higher order expansion?
         if tau0.x.abs() < LINEAR_GRIN_RAYDIR_EPSILON {
             (tau0 * s, *tau0)
-        }
-        else {
-            let x = tau0.x * n01 * (((s * s + 2. * tau0.y * n01 * s + n01 * n01).sqrt() + tau0.y * n01 + s) / (n01 + tau0.y * n01)).ln();
+        } else {
+            let x = tau0.x
+                * n01
+                * (((s * s + 2. * tau0.y * n01 * s + n01 * n01).sqrt() + tau0.y * n01 + s)
+                    / (n01 + tau0.y * n01))
+                    .ln();
             let y = (s * s + 2. * tau0.y * n01 * s + n01 * n01).sqrt() - n01;
-            let taux = tau0.x * n01       / (s * s + 2. * tau0.y * n01 * s + n01 * n01).sqrt();
+            let taux = tau0.x * n01 / (s * s + 2. * tau0.y * n01 * s + n01 * n01).sqrt();
             let tauy = (tau0.y * n01 + s) / (s * s + 2. * tau0.y * n01 * s + n01 * n01).sqrt();
             (Vector2::new(x, y), Vector2::new(taux, tauy))
         }
@@ -387,21 +496,33 @@ impl LinearGRINFresnelMaterial {
     // since the ray cannot bend beyond the direction of the gradient. Angular deviations
     // larger than this value cannot be achieved at any (positiv) arclength, so this function
     // returns +inf in this case
-    fn analytical_arclen_angular_deviation(&self, tau0: &Vector2<f64>, angular_deviation_threshold: f64) -> f64 {
+    fn analytical_arclen_angular_deviation(
+        &self,
+        tau0: &Vector2<f64>,
+        angular_deviation_threshold: f64,
+    ) -> f64 {
         let n01 = self.reference_index / self.gradient_strength;
         let threshold = angular_deviation_threshold; // Shorthand
         if tau0.y.abs() >= (threshold - 1e-10) {
             f64::INFINITY
-        }
-        else {
-            n01 * (1.0 - threshold*threshold) * (-tau0.y / (tau0.y * tau0.y - threshold * threshold) + 
-                (threshold * threshold * tau0.x * tau0.x / (1. - threshold * threshold)).sqrt() 
-                    / (tau0.y * tau0.y - threshold * threshold).abs())
+        } else {
+            n01 * (1.0 - threshold * threshold)
+                * (-tau0.y / (tau0.y * tau0.y - threshold * threshold)
+                    + (threshold * threshold * tau0.x * tau0.x / (1. - threshold * threshold))
+                        .sqrt()
+                        / (tau0.y * tau0.y - threshold * threshold).abs())
         }
     }
 
     // Trace a ray until it (probabilistically) leaves the object
-    fn inner_trace<T: Tracer>(&self, ray: Ray, object: &(dyn RTObject + Send + Sync), rng: &mut Xoshiro256Plus, tracer: &mut T, trace: T::TraceID) -> Option<Ray> {
+    fn inner_trace<T: Tracer>(
+        &self,
+        ray: Ray,
+        object: &(dyn RTObject + Send + Sync),
+        rng: &mut Xoshiro256Plus,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Option<Ray> {
         // Abort if ray has exhausted its depth counter
         if ray.depth == 0 {
             return None;
@@ -421,19 +542,20 @@ impl LinearGRINFresnelMaterial {
         let tau0 = ray_2d_dir.truncate();
         // Loop until we arrive at a point that is close enough to the surface
         let mut trial_ray = ray.clone(); // Current point and direction along the ray trajectory
-        let mut trial_s = 0.;            // Current arclength distance along the trajectory
+        let mut trial_s = 0.; // Current arclength distance along the trajectory
         let mut trial_tau_2d = tau0.clone(); // Current tangent vector *in the 2D frame*
         let exit_intersection = loop {
             // Intersect trial ray with object to get approximation for arc length
             let trial_intersection = match object.intersect_ray(&trial_ray) {
                 Some(trial_intersection) => trial_intersection,
-                None => {
-                    object.intersect_line(&trial_ray).unwrap()
-                },
+                None => object.intersect_line(&trial_ray).unwrap(),
             };
             // Move along trajectory by the length of the cast ray, but not too far
             // to avoid missing concave parts of the geometry
-            let max_arclen_step = self.analytical_arclen_angular_deviation(&trial_tau_2d, LINEAR_GRIN_ANGULAR_DEVIATION_THRESHOLD.cos());
+            let max_arclen_step = self.analytical_arclen_angular_deviation(
+                &trial_tau_2d,
+                LINEAR_GRIN_ANGULAR_DEVIATION_THRESHOLD.cos(),
+            );
             trial_s += trial_intersection.ray_dist.min(max_arclen_step);
             // Calculate exact point and tangent (both are in 2D coordinates initially!)
             let trial_point;
@@ -443,7 +565,7 @@ impl LinearGRINFresnelMaterial {
             // If the exact point is close enough to the linear intersection, break loop
             let error = trial_point.distance(trial_intersection.point);
             if error < LINEAR_GRIN_ERROR {
-                break trial_intersection
+                break trial_intersection;
             }
             // Otherwise, we use the trial point as the start of our next attempt
             else {
@@ -464,7 +586,10 @@ impl LinearGRINFresnelMaterial {
             let trace_point = full_rotation_inverse * point_2d.extend(0.) + ray.start;
             tracer.add_point(trace, TraceEvent::Intermediate, trace_point);
             // Take a step along the trajectory
-            let arclen_limit = self.analytical_arclen_angular_deviation(&tracer_tau_2d, LINEAR_GRIN_ANGULAR_DEVIATION_THRESHOLD.cos());
+            let arclen_limit = self.analytical_arclen_angular_deviation(
+                &tracer_tau_2d,
+                LINEAR_GRIN_ANGULAR_DEVIATION_THRESHOLD.cos(),
+            );
             if tracer_s + arclen_limit < trial_s {
                 tracer_s += arclen_limit;
                 tracer_tau_2d = tangent_2d;
@@ -479,46 +604,78 @@ impl LinearGRINFresnelMaterial {
 
         // Interaction at the (potential) exit site
         let exit_index = self.index_at_point(&exit_intersection.point, object.reference_point());
-        match FresnelMaterial::fresnel_interaction(exit_index, self.outer_index, &ray, &exit_intersection, rng) {
+        match FresnelMaterial::fresnel_interaction(
+            exit_index,
+            self.outer_index,
+            &ray,
+            &exit_intersection,
+            rng,
+        ) {
             FresnelInteractionType::Reflection(reflected_ray) => {
                 // On reflection at the inner surface we stay inside the material
                 tracer.add_point(trace, TraceEvent::Reflection, reflected_ray.start);
                 self.inner_trace(reflected_ray, object, rng, tracer, trace)
-            },
+            }
             FresnelInteractionType::Refraction(exit_ray) => {
                 // Ray exiting the object
                 tracer.add_point(trace, TraceEvent::Refraction, exit_ray.start);
                 Some(exit_ray)
-            },
+            }
         }
     }
 }
 
 impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
-    fn interact(&self, ray: &Ray, intersection: &RTIntersection, object: &(dyn RTObject + Send + Sync), ctx: &mut RayGraphicsContext<T>, tracer: &mut T, trace: T::TraceID) -> Vector3<f32> {
+    fn interact(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        object: &(dyn RTObject + Send + Sync),
+        ctx: &mut RayGraphicsContext<T>,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Vector3<f32> {
         // TODO: handle rays originating WITHIN the object (weird)
         if ray.dir.dot(intersection.normal) > 0. {
             unimplemented!("Ray may not start inside a GRIN material (yet)")
         }
-        <LinearGRINFresnelMaterial as Material<T>>::next_ray(self, ray, intersection, object, &mut ctx.rng, tracer, trace).map(|ray| ray.get_color(ctx, tracer, trace))
-            .unwrap_or(Vector3::zero())
+        <LinearGRINFresnelMaterial as Material<T>>::next_ray(
+            self,
+            ray,
+            intersection,
+            object,
+            &mut ctx.rng,
+            tracer,
+            trace,
+        )
+        .map(|ray| ray.get_color(ctx, tracer, trace))
+        .unwrap_or(Vector3::zero())
     }
 
-    fn next_ray(&self, ray: &Ray, intersection: &RTIntersection, object: &(dyn RTObject + Send + Sync), rng: &mut Xoshiro256Plus, tracer: &mut T, trace: T::TraceID) -> Option<Ray> {
+    fn next_ray(
+        &self,
+        ray: &Ray,
+        intersection: &RTIntersection,
+        object: &(dyn RTObject + Send + Sync),
+        rng: &mut Xoshiro256Plus,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Option<Ray> {
         // Calculate refractive index at the intersection point
         let index = self.index_at_point(&intersection.point, object.reference_point());
         // Calculate Fresnel interaction at the entry point
-        match FresnelMaterial::fresnel_interaction(index, self.outer_index, ray, intersection, rng) {
+        match FresnelMaterial::fresnel_interaction(index, self.outer_index, ray, intersection, rng)
+        {
             FresnelInteractionType::Reflection(next_ray) => {
                 // Reflection is easy as the ray does not enter the material
                 tracer.add_point(trace, TraceEvent::Reflection, next_ray.start);
                 Some(next_ray)
-            },
+            }
             FresnelInteractionType::Refraction(inner_ray) => {
                 // Refractions takes us into the material
                 tracer.add_point(trace, TraceEvent::Refraction, inner_ray.start);
                 self.inner_trace(inner_ray, object, rng, tracer, trace)
-            },
+            }
         }
     }
 }

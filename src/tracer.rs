@@ -20,7 +20,7 @@ pub enum TraceEvent {
     /// The ray ends (e.g., total absorption, hitting a black hole, etc.)
     /// Note: Typically, rays "end" by exiting the scene and travelling to infinity. This event
     /// is only meant to capture rays that actually have a finite travel distance
-    End
+    End,
 }
 
 #[derive(Debug, Clone)]
@@ -32,10 +32,10 @@ pub struct TracePoint {
 impl PartialEq for TracePoint {
     fn eq(&self, other: &Self) -> bool {
         // TracePoints should not be NaN, but just in case we use total_cmp to test for equality
-        self.location.x.total_cmp(&other.location.x).is_eq() &&
-        self.location.y.total_cmp(&other.location.y).is_eq() &&
-        self.location.z.total_cmp(&other.location.z).is_eq() &&
-        self.event == other.event
+        self.location.x.total_cmp(&other.location.x).is_eq()
+            && self.location.y.total_cmp(&other.location.y).is_eq()
+            && self.location.z.total_cmp(&other.location.z).is_eq()
+            && self.event == other.event
     }
 }
 
@@ -67,9 +67,13 @@ pub trait Tracer {
 impl Tracer for () {
     type TraceID = ();
 
-    fn new() -> Self { () }
+    fn new() -> Self {
+        ()
+    }
 
-    fn new_trace(&mut self, _: Vector3<f64>) -> Self::TraceID { () }
+    fn new_trace(&mut self, _: Vector3<f64>) -> Self::TraceID {
+        ()
+    }
 
     fn add_point(&mut self, _trace: Self::TraceID, _event: TraceEvent, _location: Vector3<f64>) {}
 
@@ -79,7 +83,7 @@ impl Tracer for () {
 /// This tracer will collect all intermediate points and is intended for
 /// debugging purposes
 pub struct FullTracer {
-    traces: Vec<Vec<TracePoint>>
+    traces: Vec<Vec<TracePoint>>,
 }
 
 #[derive(Clone, Copy)]
@@ -89,13 +93,14 @@ impl Tracer for FullTracer {
     type TraceID = FullTraceID;
 
     fn new() -> Self {
-        Self {
-            traces: vec![],
-        }
+        Self { traces: vec![] }
     }
 
     fn new_trace(&mut self, start: Vector3<f64>) -> FullTraceID {
-        let trace = vec![TracePoint { location: start, event: TraceEvent::Start }];
+        let trace = vec![TracePoint {
+            location: start,
+            event: TraceEvent::Start,
+        }];
         self.traces.push(trace);
         FullTraceID(self.traces.len() - 1)
     }
@@ -122,19 +127,23 @@ pub struct CountingTracer {
     /// Traces that have not been ended yet
     open_traces: SlotMap<CountingTraceID, Vec<TracePoint>>,
     /// Once a trace is ended, it is stored efficiently in a forest structure
-    closed_traces: Vec<CountingTreeNode>
+    closed_traces: Vec<CountingTreeNode>,
 }
 
 #[derive(Debug)]
 pub struct CountingTreeNode {
     pub tracepoint: TracePoint,
     pub count: usize,
-    pub children: Vec<CountingTreeNode>
+    pub children: Vec<CountingTreeNode>,
 }
 
 impl CountingTreeNode {
     fn new(tracepoint: TracePoint) -> Self {
-        Self { tracepoint, count: 0, children: vec![] }
+        Self {
+            tracepoint,
+            count: 0,
+            children: vec![],
+        }
     }
 }
 
@@ -149,7 +158,10 @@ impl Tracer for CountingTracer {
     }
 
     fn new_trace(&mut self, start: Vector3<f64>) -> Self::TraceID {
-        let trace = vec![TracePoint { location: start, event: TraceEvent::Start }];
+        let trace = vec![TracePoint {
+            location: start,
+            event: TraceEvent::Start,
+        }];
         self.open_traces.insert(trace)
     }
 
@@ -165,10 +177,11 @@ impl Tracer for CountingTracer {
         let mut next_nodes = &mut self.closed_traces;
         for tracepoint in trace {
             // Get next node in tree that fits the current trace point
-            let next_node = match next_nodes.iter().position(|node| node.tracepoint.eq(&tracepoint)) {
-                Some(idx) => {
-                    &mut next_nodes[idx]
-                },
+            let next_node = match next_nodes
+                .iter()
+                .position(|node| node.tracepoint.eq(&tracepoint))
+            {
+                Some(idx) => &mut next_nodes[idx],
                 None => {
                     // Add current trace point to tree of not already present
                     next_nodes.push(CountingTreeNode::new(tracepoint));

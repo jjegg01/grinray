@@ -12,9 +12,9 @@ pub(crate) const RAYDIST_EPSILON: f64 = 1e-7;
 /// with a distance larger than this value to be invalid (i.e. the same as "no intersection")
 pub(crate) const RAYDIST_MAX: f64 = 1e10;
 
-#[derive(Hash,PartialEq,Eq,Clone, Copy)]
+#[derive(Hash, PartialEq, Eq, Clone, Copy)]
 pub struct ObjectID(pub(crate) ObjectKey);
-#[derive(Hash,PartialEq,Eq,Clone, Copy)]
+#[derive(Hash, PartialEq, Eq, Clone, Copy)]
 pub struct MaterialID(pub(crate) MaterialKey);
 pub(crate) type ObjectKey = slotmap::DefaultKey;
 pub(crate) type MaterialKey = slotmap::DefaultKey;
@@ -23,12 +23,17 @@ pub struct Scene<T: Tracer> {
     objects: SlotMap<ObjectKey, Box<dyn RTObject + Send + Sync>>,
     materials: SlotMap<MaterialKey, Box<dyn Material<T> + Send + Sync>>,
     object_materials: HashMap<ObjectKey, MaterialKey>,
-    sky_color: Vector3<f32>
+    sky_color: Vector3<f32>,
 }
 
 impl<T: Tracer> Scene<T> {
     pub fn new(sky_color: Vector3<f32>) -> Self {
-        Self { objects: SlotMap::new(), materials: SlotMap::new(), object_materials: HashMap::new(), sky_color }
+        Self {
+            objects: SlotMap::new(),
+            materials: SlotMap::new(),
+            object_materials: HashMap::new(),
+            sky_color,
+        }
     }
 
     pub(crate) fn cast_ray(&self, ray: &Ray) -> Option<(ObjectID, RTIntersection)> {
@@ -50,10 +55,14 @@ impl<T: Tracer> Scene<T> {
                 }
             }
         }
-        closest_intersection.map(|(object_key,intersection)| (ObjectID(object_key), intersection))
+        closest_intersection.map(|(object_key, intersection)| (ObjectID(object_key), intersection))
     }
 
-    pub fn add_object(&mut self, obj: Box<dyn RTObject + Send + Sync>, mat: MaterialID) -> ObjectID {
+    pub fn add_object(
+        &mut self,
+        obj: Box<dyn RTObject + Send + Sync>,
+        mat: MaterialID,
+    ) -> ObjectID {
         let object_key = self.objects.insert(obj);
         self.object_materials.insert(object_key, mat.0);
         ObjectID(object_key)
@@ -81,11 +90,11 @@ impl<T: Tracer> Scene<T> {
 pub trait RTObject {
     /// Closest intersection of a ray with this objects (but at least RAYDIST_EPSILON away from the
     /// start of the ray).
-    /// 
+    ///
     /// This function does *not* consider intersections that are "behind" the start of the ray
     fn intersect_ray(&self, ray: &Ray) -> Option<RTIntersection>;
     /// Closest intersection with a line.
-    /// 
+    ///
     /// This function also checks for intersections "behind" the start of the given ray and does
     /// *not* have a minimum distance between the ray start and the intersection point.
     fn intersect_line(&self, line: &Ray) -> Option<RTIntersection>;
@@ -118,12 +127,10 @@ impl RTObject for Sphere {
             let solution2 = -ad + discriminant;
             let ray_dist = if solution1 >= RAYDIST_EPSILON {
                 solution1
-            }
-            else if solution2 >= RAYDIST_EPSILON {
+            } else if solution2 >= RAYDIST_EPSILON {
                 solution2
-            }
-            else {
-                return None
+            } else {
+                return None;
             };
             let point = ray.start + ray_dist * ray.dir;
             let normal = (point - self.center).normalize();
@@ -147,8 +154,7 @@ impl RTObject for Sphere {
             let solution2 = -ad + discriminant;
             let ray_dist = if solution1.abs() < solution2.abs() {
                 solution1
-            }
-            else {
+            } else {
                 solution2
             };
             let point = ray.start + ray_dist * ray.dir;
@@ -172,7 +178,7 @@ impl RTObject for Sphere {
 #[derive(Clone)]
 pub struct Plane {
     origin: Vector3<f64>,
-    normal: Vector3<f64>
+    normal: Vector3<f64>,
 }
 
 impl Plane {
@@ -187,9 +193,8 @@ impl RTObject for Plane {
         let nd = self.normal.dot(ray.dir);
         if nd.abs() == 0.0 {
             None
-        }
-        else {
-            let ray_dist = (self.origin- ray.start).dot(self.normal) / nd;
+        } else {
+            let ray_dist = (self.origin - ray.start).dot(self.normal) / nd;
             if ray_dist >= RAYDIST_EPSILON {
                 let point = ray.start + ray_dist * ray.dir;
                 let normal = self.normal;

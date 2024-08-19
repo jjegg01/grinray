@@ -1,6 +1,6 @@
-use std::fmt::Debug;
 use cgmath::{Vector3, Zero};
 use rand_xoshiro::Xoshiro256Plus;
+use std::fmt::Debug;
 
 use crate::{scene::Scene, Tracer};
 
@@ -12,45 +12,53 @@ pub struct Ray {
     /// Ray direction
     pub dir: Vector3<f64>,
     /// Ray depth counter
-    pub depth: usize
+    pub depth: usize,
 }
 
 /// Representation of an intersection between a light ray and an object
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct RTIntersection {
     /// Distance from the ray origin to the intersection point
     pub ray_dist: f64,
     /// Point where the ray and the object intersect
     pub point: Vector3<f64>,
     /// Surface normal of the object at the intersection point
-    pub normal: Vector3<f64>
+    pub normal: Vector3<f64>,
 }
 
 impl Debug for Ray {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Ray(start: ({}, {}, {}), dir: ({}, {}, {}))", self.start.x, self.start.y, self.start.z, self.dir.x, self.dir.y, self.dir.z)
+        write!(
+            f,
+            "Ray(start: ({}, {}, {}), dir: ({}, {}, {}))",
+            self.start.x, self.start.y, self.start.z, self.dir.x, self.dir.y, self.dir.z
+        )
     }
 }
 
 /// Context object for probabilistic raytracing in a geometric scene of objects
 pub struct RayGraphicsContext<'a, T: Tracer> {
     pub(crate) scene: &'a Scene<T>,
-    pub(crate) rng: Xoshiro256Plus
+    pub(crate) rng: Xoshiro256Plus,
 }
 
 impl Ray {
-    pub(crate) fn get_color<T: Tracer>(&self, ctx: &mut RayGraphicsContext<T>, tracer: &mut T, trace: T::TraceID) -> Vector3<f32> {
+    pub(crate) fn get_color<T: Tracer>(
+        &self,
+        ctx: &mut RayGraphicsContext<T>,
+        tracer: &mut T,
+        trace: T::TraceID,
+    ) -> Vector3<f32> {
         // Discard rays that have exhausted the depth limit
         if self.depth == 0 {
             Vector3::zero()
-        }
-        else {
+        } else {
             match ctx.scene.cast_ray(self) {
                 Some((obj_id, intersection)) => {
                     let material = ctx.scene.get_object_material(obj_id);
                     let obj = ctx.scene.get_object(obj_id.0).unwrap();
                     material.interact(self, &intersection, obj, ctx, tracer, trace)
-                },
+                }
                 None => ctx.scene.get_sky_color().clone(),
             }
         }

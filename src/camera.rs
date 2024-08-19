@@ -1,6 +1,6 @@
+use cgmath::{InnerSpace, Vector3, Zero};
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
-use cgmath::{InnerSpace, Vector3, Zero};
 
 use crate::{ray::RayGraphicsContext, scene::Scene, Ray};
 
@@ -17,11 +17,11 @@ fn color_vec3_to_u32(color: &Vector3<f32>) -> u32 {
 pub trait Camera {
     fn build_screen_ray(&self, ix: usize, iy: usize) -> Ray;
     fn get_pixels(&self) -> (usize, usize);
-    fn render(&self, scene: &Scene<()>, buf: &mut[u32]) {
+    fn render(&self, scene: &Scene<()>, buf: &mut [u32]) {
         let pixels = self.get_pixels();
         let mut ctx = RayGraphicsContext {
             scene,
-            rng: Xoshiro256Plus::from_entropy()
+            rng: Xoshiro256Plus::from_entropy(),
         };
         for iy in 0..pixels.1 {
             for ix in 0..pixels.0 {
@@ -108,8 +108,13 @@ impl Camera for PerspectiveCamera {
         let start = self.eye;
         let dir = (self.rel_screen_origin
             + self.cell_size.0 * (0.5 + ix as f64) * self.sideways
-            + self.cell_size.1 * (0.5 + iy as f64) * self.up).normalize();
-        Ray { start, dir, depth: MAX_DEPTH }
+            + self.cell_size.1 * (0.5 + iy as f64) * self.up)
+            .normalize();
+        Ray {
+            start,
+            dir,
+            depth: MAX_DEPTH,
+        }
     }
 
     fn get_pixels(&self) -> (usize, usize) {
