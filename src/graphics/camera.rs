@@ -1,38 +1,27 @@
 use cgmath::{InnerSpace, Vector3, Zero};
-use rand::SeedableRng;
-use rand_xoshiro::Xoshiro256Plus;
 
-use crate::{ray::RayGraphicsContext, scene::Scene, Ray};
+use crate::{graphics::util, graphics::RayGraphicsContext, Ray};
 
 const MAX_DEPTH: usize = 10;
 
-fn color_vec3_to_u32(color: &Vector3<f32>) -> u32 {
-    // NOTE: WE ASSUME LITTLE ENDIAN HERE
-    let mut result = 255;
-    result = (result << 8) + ((color.z).clamp(0., 0.999) * 256.) as u32;
-    result = (result << 8) + ((color.y).clamp(0., 0.999) * 256.) as u32;
-    (result << 8) + ((color.x).clamp(0., 0.999) * 256.) as u32
-}
-
 pub trait Camera {
+    /// Build the ray corresponding to the given pixel coordinates
     fn build_screen_ray(&self, ix: usize, iy: usize) -> Ray;
-    fn get_pixels(&self) -> (usize, usize);
-    fn render(&self, scene: &Scene<()>, buf: &mut [u32]) {
-        let pixels = self.get_pixels();
-        let mut ctx = RayGraphicsContext {
-            scene,
-            rng: Xoshiro256Plus::from_entropy(),
-        };
+    /// Get size of the image in pixels
+    fn get_image_size(&self) -> (usize, usize);
+    /// Render a given scene with this camera into a given image buffer
+    fn render<'a>(&self, ctx: &mut RayGraphicsContext<'a, ()>, buf: &mut [u32]) {
+        let pixels = self.get_image_size();
         for iy in 0..pixels.1 {
             for ix in 0..pixels.0 {
                 let ray = self.build_screen_ray(ix, iy);
                 let mut color = Vector3::zero();
                 const SAMPLES: usize = 32;
                 for _ in 0..SAMPLES {
-                    color += ray.get_color(&mut ctx, &mut (), ());
+                    color += ray.get_color(ctx, &mut (), ());
                 }
                 color = color / SAMPLES as f32;
-                buf[iy * pixels.0 + ix] = color_vec3_to_u32(&color);
+                buf[iy * pixels.0 + ix] = util::color_vec3_to_u32(&color);
             }
         }
     }
@@ -117,7 +106,7 @@ impl Camera for PerspectiveCamera {
         }
     }
 
-    fn get_pixels(&self) -> (usize, usize) {
+    fn get_image_size(&self) -> (usize, usize) {
         self.pixels
     }
 }

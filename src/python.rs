@@ -1,4 +1,6 @@
 use crate::*;
+use graphics::{Camera, PerspectiveCamera, PerspectiveCameraParams, RayGraphicsContext};
+use objects::{Plane, Sphere};
 use slotmap::Key;
 use std::mem;
 
@@ -61,10 +63,11 @@ impl PyPerspectiveCamera {
     }
 
     fn render<'py>(&self, py: Python<'py>, scene: &PyScene) -> Bound<'py, PyBytes> {
-        let pixels = self.camera.get_pixels();
+        let pixels = self.camera.get_image_size();
         let mut buf = vec![0u8; mem::size_of::<u32>() * pixels.0 * pixels.1];
+        let mut ctx = RayGraphicsContext::with_defaults(&scene.scene);
         self.camera
-            .render(&scene.scene, bytemuck::cast_slice_mut(buf.as_mut_slice()));
+            .render(&mut ctx, bytemuck::cast_slice_mut(buf.as_mut_slice()));
         PyBytes::new_bound(py, &buf)
     }
 }
@@ -104,9 +107,9 @@ struct PyScene {
 #[pymethods]
 impl PyScene {
     #[new]
-    fn new(sky_color: (f32, f32, f32)) -> Self {
+    fn new() -> Self {
         Self {
-            scene: Scene::new(sky_color.into()),
+            scene: Scene::new(),
         }
     }
 

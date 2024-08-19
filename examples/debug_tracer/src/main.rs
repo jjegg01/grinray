@@ -3,7 +3,7 @@
 
 use cgmath::{Vector3, Zero};
 use grinray::{
-    CountingTracer, CountingTreeNode, LinearGRINFresnelMaterial, Material, RTObject, Ray, Sphere,
+    CountingTracer, CountingTreeNode, LinearGRINFresnelMaterial, Material, Ray, objects::{RTObject, Sphere},
     TraceEvent, Tracer,
 };
 use pyo3::{

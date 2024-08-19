@@ -1,7 +1,7 @@
 //! Example for using GRINRAY to calculate optical forces
 
 use cgmath::{InnerSpace, Vector3, Zero};
-use grinray::{LinearGRINFresnelMaterial, Material, RTObject, Ray, Sphere};
+use grinray::{LinearGRINFresnelMaterial, Material, Ray, objects::{RTObject, Sphere}};
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
 
