@@ -26,5 +26,5 @@ camera = grinray.PerspectiveCamera(cameraparams)
 imagedata = camera.render(scene)
 
 # Use PIL to encode data as PNG
-im = ImageOps.flip(Image.fromarray(imagedata))
+im = ImageOps.flip(Image.frombytes("RGBA", (1024,1024), imagedata))
 im.save("sphere.png")

@@ -1,6 +1,10 @@
+# Some examples are built as separate crates
+[workspace]
+members = ["examples/debug_tracer"]
+
 [package]
 name = "grinray"
-version = "0.1.0"
+version = "0.2.0-alpha"
 edition = "2021"
 license = "MPL-2.0"
 
@@ -9,8 +13,7 @@ name = "grinray"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-pyo3 = { version = "0.18", features = ["extension-module"] }
-numpy = "0.18"
+pyo3 = { version = "0.22", features = ["extension-module"], optional = true}
 cgmath = "0.18.0"
 slotmap = "1.0.6"
 bytemuck = "1.13.1"

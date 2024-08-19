@@ -69,7 +69,7 @@ fn main() {
                 let incoming_momentum = ray.dir.normalize();
                 let incoming_angular_momentum = (intersection.point - particle.center).cross(incoming_momentum);
                 for _ in 0..SAMPLES_PER_RAY {
-                    if let Some(outgoing_ray) = material.next_ray(&ray, &intersection, &particle, &mut rng) {
+                    if let Some(outgoing_ray) = material.next_ray(&ray, &intersection, &particle, &mut rng, &mut (), ()) {
                         // Calculate outgoing momentum and torque
                         let outgoing_momentum = outgoing_ray.dir.normalize();
                         let outgoing_angular_momentum = (outgoing_ray.start - particle.center).cross(outgoing_momentum);

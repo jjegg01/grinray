@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use cgmath::{Vector3, Zero};
 use rand_xoshiro::Xoshiro256Plus;
 
-use crate::scene::Scene;
+use crate::{scene::Scene, Tracer};
 
 /// Representation of a single light ray with a depth counter
 #[derive(Clone)]
@@ -33,13 +33,13 @@ impl Debug for Ray {
 }
 
 /// Context object for probabilistic raytracing in a geometric scene of objects
-pub struct RayGraphicsContext<'a> {
-    pub(crate) scene: &'a Scene,
+pub struct RayGraphicsContext<'a, T: Tracer> {
+    pub(crate) scene: &'a Scene<T>,
     pub(crate) rng: Xoshiro256Plus
 }
 
 impl Ray {
-    pub(crate) fn get_color(&self, ctx: &mut RayGraphicsContext) -> Vector3<f32> {
+    pub(crate) fn get_color<T: Tracer>(&self, ctx: &mut RayGraphicsContext<T>, tracer: &mut T, trace: T::TraceID) -> Vector3<f32> {
         // Discard rays that have exhausted the depth limit
         if self.depth == 0 {
             Vector3::zero()
@@ -49,7 +49,7 @@ impl Ray {
                 Some((obj_id, intersection)) => {
                     let material = ctx.scene.get_object_material(obj_id);
                     let obj = ctx.scene.get_object(obj_id.0).unwrap();
-                    material.interact(self, &intersection, obj, ctx)
+                    material.interact(self, &intersection, obj, ctx, tracer, trace)
                 },
                 None => ctx.scene.get_sky_color().clone(),
             }

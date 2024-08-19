@@ -2,7 +2,7 @@ use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
 use cgmath::{InnerSpace, Vector3, Zero};
 
-use crate::{Ray, scene::Scene, ray::RayGraphicsContext};
+use crate::{ray::RayGraphicsContext, scene::Scene, Ray};
 
 const MAX_DEPTH: usize = 10;
 
@@ -14,10 +14,10 @@ fn color_vec3_to_u32(color: &Vector3<f32>) -> u32 {
     (result << 8) + ((color.x).clamp(0., 0.999) * 256.) as u32
 }
 
-pub(crate) trait Camera {
+pub trait Camera {
     fn build_screen_ray(&self, ix: usize, iy: usize) -> Ray;
     fn get_pixels(&self) -> (usize, usize);
-    fn render(&self, scene: &Scene, buf: &mut[u32]) {
+    fn render(&self, scene: &Scene<()>, buf: &mut[u32]) {
         let pixels = self.get_pixels();
         let mut ctx = RayGraphicsContext {
             scene,
@@ -29,7 +29,7 @@ pub(crate) trait Camera {
                 let mut color = Vector3::zero();
                 const SAMPLES: usize = 32;
                 for _ in 0..SAMPLES {
-                    color += ray.get_color(&mut ctx);
+                    color += ray.get_color(&mut ctx, &mut (), ());
                 }
                 color = color / SAMPLES as f32;
                 buf[iy * pixels.0 + ix] = color_vec3_to_u32(&color);
@@ -39,13 +39,13 @@ pub(crate) trait Camera {
 }
 
 #[derive(Clone)]
-pub(crate) struct PerspectiveCameraParams {
-    pub(crate) eye: Vector3<f64>,
-    pub(crate) orientation: Vector3<f64>,
-    pub(crate) up: Vector3<f64>,
-    pub(crate) near: f64,
-    pub(crate) fov: f64,
-    pub(crate) pixels: (usize, usize),
+pub struct PerspectiveCameraParams {
+    pub eye: Vector3<f64>,
+    pub orientation: Vector3<f64>,
+    pub up: Vector3<f64>,
+    pub near: f64,
+    pub fov: f64,
+    pub pixels: (usize, usize),
 }
 
 impl Default for PerspectiveCameraParams {
@@ -61,7 +61,7 @@ impl Default for PerspectiveCameraParams {
     }
 }
 
-pub(crate) struct PerspectiveCamera {
+pub struct PerspectiveCamera {
     eye: Vector3<f64>,
     up: Vector3<f64>,
     pixels: (usize, usize),
@@ -71,7 +71,7 @@ pub(crate) struct PerspectiveCamera {
 }
 
 impl PerspectiveCamera {
-    pub(crate) fn new(params: PerspectiveCameraParams) -> Self {
+    pub fn new(params: PerspectiveCameraParams) -> Self {
         // Validation
         let eye = params.eye;
         let orientation = params.orientation.normalize();

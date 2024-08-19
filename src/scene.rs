@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use cgmath::{InnerSpace, Vector3};
-use slotmap::{SlotMap, KeyData};
+use slotmap::SlotMap;
 
-use crate::{RTIntersection, Ray, material::Material};
+use crate::{material::Material, RTIntersection, Ray, Tracer};
 
 /// Minimum distance at which intersect_ray will detect an intersection
 pub(crate) const RAYDIST_EPSILON: f64 = 1e-7;
@@ -13,33 +13,21 @@ pub(crate) const RAYDIST_EPSILON: f64 = 1e-7;
 pub(crate) const RAYDIST_MAX: f64 = 1e10;
 
 #[derive(Hash,PartialEq,Eq,Clone, Copy)]
-pub(crate) struct ObjectID(pub(crate) ObjectKey);
+pub struct ObjectID(pub(crate) ObjectKey);
 #[derive(Hash,PartialEq,Eq,Clone, Copy)]
-pub(crate) struct MaterialID(pub(crate) MaterialKey);
-type ObjectKey = slotmap::DefaultKey;
-type MaterialKey = slotmap::DefaultKey;
+pub struct MaterialID(pub(crate) MaterialKey);
+pub(crate) type ObjectKey = slotmap::DefaultKey;
+pub(crate) type MaterialKey = slotmap::DefaultKey;
 
-impl ObjectID {
-    pub(crate) fn from_keydata(data: u64) -> Self {
-        Self(ObjectKey::from(KeyData::from_ffi(data)))
-    }
-}
-
-impl MaterialID {
-    pub(crate) fn from_keydata(data: u64) -> Self {
-        Self(MaterialKey::from(KeyData::from_ffi(data)))
-    }
-}
-
-pub(crate) struct Scene {
+pub struct Scene<T: Tracer> {
     objects: SlotMap<ObjectKey, Box<dyn RTObject + Send + Sync>>,
-    materials: SlotMap<MaterialKey, Box<dyn Material + Send + Sync>>,
+    materials: SlotMap<MaterialKey, Box<dyn Material<T> + Send + Sync>>,
     object_materials: HashMap<ObjectKey, MaterialKey>,
     sky_color: Vector3<f32>
 }
 
-impl Scene {
-    pub(crate) fn new(sky_color: Vector3<f32>) -> Self {
+impl<T: Tracer> Scene<T> {
+    pub fn new(sky_color: Vector3<f32>) -> Self {
         Self { objects: SlotMap::new(), materials: SlotMap::new(), object_materials: HashMap::new(), sky_color }
     }
 
@@ -65,13 +53,13 @@ impl Scene {
         closest_intersection.map(|(object_key,intersection)| (ObjectID(object_key), intersection))
     }
 
-    pub(crate) fn add_object(&mut self, obj: Box<dyn RTObject + Send + Sync>, mat: MaterialID) -> ObjectID {
+    pub fn add_object(&mut self, obj: Box<dyn RTObject + Send + Sync>, mat: MaterialID) -> ObjectID {
         let object_key = self.objects.insert(obj);
         self.object_materials.insert(object_key, mat.0);
         ObjectID(object_key)
     }
 
-    pub(crate) fn add_material(&mut self, mat: Box<dyn Material + Send + Sync>) -> MaterialID {
+    pub fn add_material(&mut self, mat: Box<dyn Material<T> + Send + Sync>) -> MaterialID {
         MaterialID(self.materials.insert(mat))
     }
 
@@ -79,7 +67,7 @@ impl Scene {
         self.objects.get(id).map(|b| b.as_ref())
     }
 
-    pub(crate) fn get_object_material(&self, obj: ObjectID) -> &Box<dyn Material + Send + Sync> {
+    pub(crate) fn get_object_material(&self, obj: ObjectID) -> &Box<dyn Material<T> + Send + Sync> {
         let material_key = self.object_materials.get(&obj.0).unwrap();
         self.materials.get(*material_key).unwrap()
     }
