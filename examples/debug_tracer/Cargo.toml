@@ -4,7 +4,7 @@ version = "0.2.0-alpha"
 edition = "2021"
 
 [dependencies]
-grinray = { path = "../..", default-features = false}
+grinray = { path = "../.." }
 pyo3 = { version = "0.22", features = ["auto-initialize"]}
 cgmath = "0.18.0"
 rand = "0.8.5"
