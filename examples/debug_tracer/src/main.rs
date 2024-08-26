@@ -1,10 +1,9 @@
 //! Example for using the debug tracing functionality to sample the ray distribution in a simple
 //! scene. This is mostly useful for verifying the physical correctness of new materials / shapes.
 
-use cgmath::{Vector3, Zero};
+use cgmath::{Quaternion, Rad, Rotation3, Vector3, Zero};
 use grinray::{
-    CountingTracer, CountingTreeNode, LinearGRINFresnelMaterial, Material, Ray, objects::{RTObject, Sphere},
-    TraceEvent, Tracer,
+    objects::{ObjectTransform, RTObject, Sphere}, CountingTracer, CountingTreeNode, LinearGRINFresnelMaterial, Material, Ray, TraceEvent, Tracer
 };
 use pyo3::{
     prelude::*,
@@ -21,7 +20,8 @@ fn main() {
     // By using the debug tracer we can see that there is a lot of internal reflection in the
     // sphere which explains why some of rays appears to exit the sphere at "impossible" angles
     const SPHERE_RADIUS: f64 = 1.0;
-    let sphere = Sphere::new(Vector3::zero(), SPHERE_RADIUS);
+    let sphere = Sphere::new(SPHERE_RADIUS);
+    let sphere_transform = ObjectTransform::new(Vector3::zero(), Some(Quaternion::from_angle_y(Rad(90.))));
     let material = LinearGRINFresnelMaterial::new(1.5, Vector3::new(0.1, 0., 0.), 1.0);
     let mut tracer = CountingTracer::new();
     let mut rng = Xoshiro256Plus::from_seed([
@@ -44,14 +44,14 @@ fn main() {
         // Get the intersection of the ray and the sphere
         // Note: Since a sphere is convex, the outgoing ray cannot intersect with the sphere again
         // so we only need to do one intersection test per ray
-        let intersection = sphere.intersect_ray(&ray);
+        let intersection = sphere.intersect_ray(&sphere_transform, &ray);
         // Repeat the material interaction multiple times to get a statistically significant sample
         // of the ray distribution inside the sphere
         for _ in 0..SAMPLES_PER_RAY {
             let trace = tracer.new_trace(ray.start);
             let final_ray = match &intersection {
                 Some(intersection) => material
-                    .next_ray(&ray, intersection, &sphere, &mut rng, &mut tracer, trace)
+                    .next_ray(&ray, intersection, &sphere, &sphere_transform, &mut rng, &mut tracer, trace)
                     .expect("Raytracing failed: recursion limit exceeded"),
                 None => ray.clone(),
             };

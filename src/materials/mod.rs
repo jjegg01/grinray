@@ -16,7 +16,7 @@ use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
     graphics::RayGraphicsContext,
-    objects::RTObject,
+    objects::{ObjectTransform, RTObject},
     ray::{RTIntersection, Ray},
     Tracer,
 };
@@ -30,6 +30,7 @@ pub trait Material<T: Tracer> {
         ray: &Ray,
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         ctx: &mut RayGraphicsContext<T>,
         tracer: &mut T,
         trace: T::TraceID,
@@ -45,6 +46,7 @@ pub trait Material<T: Tracer> {
         ray: &Ray,
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,

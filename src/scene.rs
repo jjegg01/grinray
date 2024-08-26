@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use slotmap::SlotMap;
 
-use crate::{materials::Material, objects::RTObject, RTIntersection, Ray, Tracer, RAYDIST_MAX};
+use crate::{materials::Material, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, Tracer, RAYDIST_MAX};
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
 pub struct ObjectID(pub(crate) ObjectKey);
@@ -12,7 +12,7 @@ pub(crate) type ObjectKey = slotmap::DefaultKey;
 pub(crate) type MaterialKey = slotmap::DefaultKey;
 
 pub struct Scene<T: Tracer> {
-    objects: SlotMap<ObjectKey, Box<dyn RTObject + Send + Sync>>,
+    objects: SlotMap<ObjectKey, (Box<dyn RTObject + Send + Sync>, ObjectTransform)>,
     materials: SlotMap<MaterialKey, Box<dyn Material<T> + Send + Sync>>,
     object_materials: HashMap<ObjectKey, MaterialKey>,
 }
@@ -28,8 +28,8 @@ impl<T: Tracer> Scene<T> {
 
     pub(crate) fn cast_ray(&self, ray: &Ray) -> Option<(ObjectID, RTIntersection)> {
         let mut closest_intersection: Option<(ObjectKey, RTIntersection)> = None;
-        for (object_key, object) in &self.objects {
-            if let Some(intersection) = object.intersect_ray(ray) {
+        for (object_key, (object, object_transform)) in &self.objects {
+            if let Some(intersection) = object.intersect_ray(object_transform, ray) {
                 if intersection.ray_dist > RAYDIST_MAX {
                     continue;
                 }
@@ -51,9 +51,10 @@ impl<T: Tracer> Scene<T> {
     pub fn add_object(
         &mut self,
         obj: Box<dyn RTObject + Send + Sync>,
+        transform: ObjectTransform,
         mat: MaterialID,
     ) -> ObjectID {
-        let object_key = self.objects.insert(obj);
+        let object_key = self.objects.insert((obj, transform));
         self.object_materials.insert(object_key, mat.0);
         ObjectID(object_key)
     }
@@ -62,8 +63,8 @@ impl<T: Tracer> Scene<T> {
         MaterialID(self.materials.insert(mat))
     }
 
-    pub(crate) fn get_object(&self, id: ObjectKey) -> Option<&(dyn RTObject + Send + Sync)> {
-        self.objects.get(id).map(|b| b.as_ref())
+    pub(crate) fn get_object(&self, id: ObjectKey) -> Option<(&(dyn RTObject + Send + Sync), &ObjectTransform)> {
+        self.objects.get(id).map(|b| (b.0.as_ref(), &b.1))
     }
 
     pub(crate) fn get_object_material(&self, obj: ObjectID) -> &Box<dyn Material<T> + Send + Sync> {

@@ -1,6 +1,7 @@
 use crate::*;
+use cgmath::{InnerSpace, Quaternion, Rad, Rotation3, Vector3};
 use graphics::{Camera, PerspectiveCamera, PerspectiveCameraParams, RayGraphicsContext};
-use objects::{Plane, Sphere};
+use objects::{ObjectTransform, Plane, Sphere};
 use slotmap::Key;
 use std::mem;
 
@@ -135,22 +136,42 @@ impl PyScene {
         }
     }
 
-    fn add_object(
+    fn add_object<'py>(
         &mut self,
         py: Python,
         obj: PyObject,
+        transform: &'py PyObjectTransform,
         mat: MaterialID,
     ) -> Result<ObjectID, PyErr> {
         if let Ok(obj) = obj.downcast_bound::<PySphere>(py) {
             Ok(self
                 .scene
-                .add_object(Box::new(obj.borrow().inner.clone()), mat))
+                .add_object(Box::new(obj.borrow().inner.clone()), transform.inner.clone(), mat))
         } else if let Ok(obj) = obj.downcast_bound::<PyPlane>(py) {
             Ok(self
                 .scene
-                .add_object(Box::new(obj.borrow().inner.clone()), mat))
+                .add_object(Box::new(obj.borrow().inner.clone()), transform.inner.clone(), mat))
         } else {
             Err(PyTypeError::new_err("invalid argument"))
+        }
+    }
+}
+
+#[pyclass]
+#[pyo3(name = "ObjectTransform")]
+struct PyObjectTransform {
+    inner: ObjectTransform
+}
+
+#[pymethods]
+impl PyObjectTransform {
+    #[new]
+    #[pyo3(signature = (translation, axis_angle=None))]
+    fn new(translation: (f64, f64, f64), axis_angle: Option<((f64, f64, f64), f64)>) -> Self {
+        let rotation = axis_angle.map(|(axis, angle)| Quaternion::from_axis_angle(axis.into(), Rad(angle)) );
+        let translation = Vector3::new(translation.0, translation.1, translation.2);
+        Self {
+            inner: ObjectTransform::new(translation, rotation)
         }
     }
 }
@@ -164,9 +185,9 @@ struct PySphere {
 #[pymethods]
 impl PySphere {
     #[new]
-    fn new(center: (f64, f64, f64), radius: f64) -> Self {
+    fn new(radius: f64) -> Self {
         Self {
-            inner: Sphere::new(center.into(), radius),
+            inner: Sphere::new(radius),
         }
     }
 }
@@ -180,9 +201,9 @@ struct PyPlane {
 #[pymethods]
 impl PyPlane {
     #[new]
-    fn new(origin: (f64, f64, f64), normal: (f64, f64, f64)) -> Self {
+    fn new() -> Self {
         Self {
-            inner: Plane::new(origin.into(), normal.into()),
+            inner: Plane::new(),
         }
     }
 }
@@ -212,9 +233,9 @@ struct PyCheckerboardMaterial {
 #[pymethods]
 impl PyCheckerboardMaterial {
     #[new]
-    fn new(color: (f32, f32, f32), origin: (f32, f32, f32), direction: (f32, f32, f32)) -> Self {
+    fn new(color: (f32, f32, f32), direction: (f64, f64, f64)) -> Self {
         Self {
-            inner: CheckerboardMaterial::new(color.into(), origin.into(), direction.into()),
+            inner: CheckerboardMaterial::new(color.into(), direction.into()),
         }
     }
 }
@@ -257,6 +278,7 @@ fn grinray(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPerspectiveCamera>()?;
     m.add_class::<PyPerspectiveCameraParams>()?;
     m.add_class::<PyScene>()?;
+    m.add_class::<PyObjectTransform>()?;
     m.add_class::<PySphere>()?;
     m.add_class::<PyPlane>()?;
     m.add_class::<PySimpleMaterial>()?;

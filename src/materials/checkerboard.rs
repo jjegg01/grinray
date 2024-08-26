@@ -1,8 +1,8 @@
-use cgmath::{ElementWise, InnerSpace, Vector3, Zero};
+use cgmath::{ElementWise, InnerSpace, Rotation, Vector3, Zero};
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::RTObject, util, RTIntersection, Ray, TraceEvent, Tracer,
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, TraceEvent, Tracer,
 };
 
 use super::Material;
@@ -11,17 +11,21 @@ use super::Material;
 #[derive(Clone)]
 pub struct CheckerboardMaterial {
     color: Vector3<f32>,
-    origin: Vector3<f32>,
-    direction: Vector3<f32>,
+    direction: Vector3<f64>,
 }
 
 impl CheckerboardMaterial {
     /// Create a new material showing a checkerboard pattern.
-    /// The pattern requires an origin, a direction and a color if you don't want white tiles
-    pub fn new(color: Vector3<f32>, origin: Vector3<f32>, direction: Vector3<f32>) -> Self {
+    /// The pattern requires a direction (basically the direction of one of the sides of the square
+    /// tiles) and a color if you don't want white tiles
+    /// 
+    /// Note: The `direction` is understood to be in the **untransformed** coordinate system of
+    /// each object, i.e., if you apply this to a `Plane` object, which in its untransformed 
+    /// coordinate system is an XZ-plane, you should choose a `direction` in the XZ-plane as well,
+    /// regardless of how you transform the plane later.
+    pub fn new(color: Vector3<f32>, direction: Vector3<f64>) -> Self {
         Self {
             color,
-            origin,
             direction,
         }
     }
@@ -33,6 +37,7 @@ impl<T: Tracer> Material<T> for CheckerboardMaterial {
         ray: &Ray,
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         ctx: &mut RayGraphicsContext<T>,
         tracer: &mut T,
         trace: T::TraceID,
@@ -42,6 +47,7 @@ impl<T: Tracer> Material<T> for CheckerboardMaterial {
             ray,
             intersection,
             object,
+            transform,
             &mut ctx.rng,
             tracer,
             trace,
@@ -59,20 +65,21 @@ impl<T: Tracer> Material<T> for CheckerboardMaterial {
         ray: &Ray,
         intersection: &RTIntersection,
         _: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
     ) -> Option<Ray> {
+        // Rotate pattern direction with the rotation of the object
+        let direction = transform.rotation.rotate_vector(self.direction);
         // Calculate checkerboard base color
-        let point = util::vec3_64_to_32(&intersection.point);
-        let normal = util::vec3_64_to_32(&intersection.normal);
-        let plane_vec = self.origin - point;
-        let direction2 = self.direction.cross(normal);
-        let tex_x = plane_vec.dot(self.direction);
+        let plane_vec = transform.translation - intersection.point;
+        let direction2 = direction.cross(intersection.normal);
+        let tex_x = plane_vec.dot(direction);
         let tex_y = plane_vec.dot(direction2);
         let sign_x = if tex_x < 0.0 { 1 } else { 0 };
         let sign_y = if tex_y < 0.0 { 1 } else { 0 };
-        if ((tex_x as i32).abs() + (tex_y as i32).abs() + sign_x + sign_y) % 2 == 1 {
+        if ((tex_x as i64).abs() + (tex_y as i64).abs() + sign_x + sign_y) % 2 == 1 {
             // Diffuse reflection on "white" tiles
             tracer.add_point(trace, TraceEvent::Reflection, intersection.point);
             super::lambert_next_ray(intersection, ray.depth - 1, rng)

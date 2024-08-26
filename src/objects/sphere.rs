@@ -1,25 +1,27 @@
-use cgmath::{InnerSpace, Vector3};
+use cgmath::InnerSpace;
 
 use crate::{RTIntersection, Ray, RAYDIST_EPSILON};
 
-use super::RTObject;
+use super::{ObjectTransform, RTObject};
 
-/// Sphere centered around a point with a given radius
+/// Sphere with a given radius
+/// 
+/// Without any transformation this object is centered about the origin.
 #[derive(Clone)]
 pub struct Sphere {
-    pub center: Vector3<f64>,
     pub radius: f64,
 }
 
 impl Sphere {
-    pub fn new(center: Vector3<f64>, radius: f64) -> Self {
-        Self { center, radius }
+    pub fn new(radius: f64) -> Self {
+        Self { radius }
     }
 }
 
 impl RTObject for Sphere {
-    fn intersect_ray(&self, ray: &Ray) -> Option<RTIntersection> {
-        let a = ray.start - self.center;
+    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+        let center = transform.translation;
+        let a = ray.start - center;
         let ad = a.dot(ray.dir);
         let discriminant = ad * ad - a.dot(a) + self.radius * self.radius;
         if discriminant >= 0.0 {
@@ -34,7 +36,7 @@ impl RTObject for Sphere {
                 return None;
             };
             let point = ray.start + ray_dist * ray.dir;
-            let normal = (point - self.center).normalize();
+            let normal = (point - center).normalize();
             Some(RTIntersection {
                 ray_dist,
                 point,
@@ -45,8 +47,9 @@ impl RTObject for Sphere {
         }
     }
 
-    fn intersect_line(&self, ray: &Ray) -> Option<RTIntersection> {
-        let a = ray.start - self.center;
+    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+        let center = transform.translation;
+        let a = ray.start - center;
         let ad = a.dot(ray.dir);
         let discriminant = ad * ad - a.dot(a) + self.radius * self.radius;
         if discriminant >= 0.0 {
@@ -59,7 +62,7 @@ impl RTObject for Sphere {
                 solution2
             };
             let point = ray.start + ray_dist * ray.dir;
-            let normal = (point - self.center).normalize();
+            let normal = (point - center).normalize();
             Some(RTIntersection {
                 ray_dist,
                 point,
@@ -70,7 +73,7 @@ impl RTObject for Sphere {
         }
     }
 
-    fn reference_point(&self) -> &Vector3<f64> {
-        &self.center
-    }
+    // fn reference_point(&self) -> &Vector3<f64> {
+    //     &self.center
+    // }
 }

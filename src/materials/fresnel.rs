@@ -3,7 +3,7 @@ use rand_distr::Distribution;
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::RTObject, RTIntersection, Ray, TraceEvent, Tracer,
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, TraceEvent, Tracer,
 };
 
 use super::Material;
@@ -106,6 +106,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
         ray: &Ray,
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         ctx: &mut RayGraphicsContext<T>,
         tracer: &mut T,
         trace: T::TraceID,
@@ -119,6 +120,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
             ray,
             intersection,
             object,
+            transform,
             &mut ctx.rng,
             tracer,
             trace,
@@ -132,6 +134,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
         ray: &Ray,
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
@@ -157,7 +160,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                     // Inner reflections bounce on the inner surface
                     if inside {
                         ray = next_ray;
-                        intersection = object.intersect_ray(&ray).unwrap();
+                        intersection = object.intersect_ray(transform, &ray).unwrap();
                     }
                     // Outer reflections don't enter the object at all
                     else {
@@ -169,7 +172,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                     // First refraction enters the object
                     if !inside {
                         ray = next_ray;
-                        intersection = object.intersect_ray(&ray).unwrap();
+                        intersection = object.intersect_ray(transform, &ray).unwrap();
                         inside = true;
                     }
                     // Second refractions exits the object

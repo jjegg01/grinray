@@ -1,10 +1,10 @@
 use std::f64::consts::PI;
 
-use cgmath::{InnerSpace, Matrix3, MetricSpace, SquareMatrix, Vector2, Vector3, Zero};
+use cgmath::{InnerSpace, MetricSpace, Quaternion, Rotation, Rotation3, Vector2, Vector3, Zero};
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::RTObject, FresnelInteractionType, FresnelMaterial,
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, FresnelInteractionType, FresnelMaterial,
     RTIntersection, Ray, TraceEvent, Tracer,
 };
 
@@ -13,13 +13,13 @@ use super::Material;
 /// Fresnel material with a linear gradient index
 #[derive(Clone)]
 pub struct LinearGRINFresnelMaterial {
-    /// Refractive index at the reference point
-    reference_index: f64,
+    /// Refractive index at the origin of the object-local coordinate system
+    origin_index: f64,
+    /// The strength of the gradient (i.e., change in refractive index per distance unit)
     gradient_strength: f64,
+    /// Direction of the gradient as a unit vector
     gradient_dir: Vector3<f64>,
-    outer_index: f64,
-    /// Rotation to the GRIN reference frame where y-axis is the direction of the gradient
-    reference_rotation: Matrix3<f64>,
+    outer_index: f64
 }
 
 // Lower limit for the ray direction component perpendicular to the material gradient.
@@ -42,21 +42,10 @@ const LINEAR_GRIN_ANGULAR_DEVIATION_THRESHOLD: f64 = 2. * PI * 1e-2;
 // GRIN materials with a linear gradient. Here, the y-axis is defined by the direction
 // of the gradient (with higher indices towards the positive axis)
 impl LinearGRINFresnelMaterial {
-    fn calc_reference_rotation(gradient_dir: Vector3<f64>) -> Matrix3<f64> {
-        // Pre-calculate rotation matrix to align the gradient to the y-axis
-        // If the gradient is already close to the y-axis, use the identity matrix
-        // as the method below becomes unstable then
-        if (gradient_dir.dot(Vector3::unit_y()) - 1.0).abs() < 1e-10 {
-            Matrix3::identity()
-        }
-        // Otherwise calculate the vector perpendicular to both the gradient vector
-        // and the y-axis and create a rotation matrix using this vector as the
-        // axis of rotation
-        else {
-            let perp = gradient_dir.cross(Vector3::unit_y()).normalize();
-            let angle = gradient_dir.angle(Vector3::unit_y());
-            Matrix3::from_axis_angle(perp, angle)
-        }
+    fn calc_reference_rotation(gradient_dir: Vector3<f64>, transform: &ObjectTransform) -> Quaternion<f64> {
+        // Calculate actual gradient direction (in lab frame)
+        let actual_gradient_dir = transform.rotation.rotate_vector(gradient_dir);
+        Quaternion::from_arc(actual_gradient_dir, Vector3::unit_y(), None)
     }
 
     /// Create a new Fresnel material with a refractive index that varies linearly in space
@@ -67,13 +56,11 @@ impl LinearGRINFresnelMaterial {
     pub fn new(reference_index: f64, gradient: Vector3<f64>, outer_index: f64) -> Self {
         let gradient_dir = gradient.normalize();
         let gradient_strength = gradient.magnitude();
-        let reference_rotation = Self::calc_reference_rotation(gradient_dir);
         Self {
-            reference_index,
+            origin_index: reference_index,
             gradient_strength,
             gradient_dir,
-            outer_index,
-            reference_rotation,
+            outer_index
         }
     }
 
@@ -86,19 +73,19 @@ impl LinearGRINFresnelMaterial {
     pub fn set_gradient(&mut self, gradient: Vector3<f64>) {
         self.gradient_dir = gradient.normalize();
         self.gradient_strength = gradient.magnitude();
-        self.reference_rotation = Self::calc_reference_rotation(self.gradient_dir)
     }
 
-    // Get refractive index at a specific point in space (needs reference point from geometry)
-    fn index_at_point(&self, point: &Vector3<f64>, reference_point: &Vector3<f64>) -> f64 {
-        self.reference_index
-            + self.gradient_strength * self.gradient_dir.dot(point - reference_point)
+    // Get refractive index at a specific point in space (needs reference point from geometry to
+    // locate the origin of the gradient profile)
+    fn index_at_point(&self, point: &Vector3<f64>, origin_point: &Vector3<f64>) -> f64 {
+        self.origin_index
+            + self.gradient_strength * self.gradient_dir.dot(point - origin_point)
     }
 
     // Analytical ray trajectory for position and tangent at a given arc length in GRIN materials
     // with the tangent tau0 as initial condition
     fn analytical_trajectory(&self, tau0: &Vector2<f64>, s: f64) -> (Vector2<f64>, Vector2<f64>) {
-        let n01 = self.reference_index / self.gradient_strength;
+        let n01 = self.origin_index / self.gradient_strength;
         debug_assert!(n01 >= 0.);
         // If ray is nearly parallel to gradient, approximate as linear
         // TODO: higher order expansion?
@@ -135,7 +122,7 @@ impl LinearGRINFresnelMaterial {
         tau0: &Vector2<f64>,
         angular_deviation_threshold: f64,
     ) -> f64 {
-        let n01 = self.reference_index / self.gradient_strength;
+        let n01 = self.origin_index / self.gradient_strength;
         let threshold = angular_deviation_threshold; // Shorthand
         if tau0.y.abs() >= (threshold - 1e-10) {
             f64::INFINITY
@@ -153,6 +140,8 @@ impl LinearGRINFresnelMaterial {
         &self,
         ray: Ray,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
+        gradient_reference_rotation: Quaternion<f64>,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
@@ -162,17 +151,17 @@ impl LinearGRINFresnelMaterial {
             return None;
         }
         // Calculate rotation such that the ray direction is in the xy-plane
-        // (after rotating such that the gradient is parallel to the y axis)
-        let tmp = self.reference_rotation * ray.dir;
+        // (after rotating such that the gradient is parallel to the y-axis)
+        let tmp = gradient_reference_rotation * ray.dir;
         let tmp = Vector2::new(tmp.x, tmp.z);
         let angle = tmp.angle(Vector2::unit_x());
-        let ray_rotation = Matrix3::from_angle_y(-angle);
+        let ray_rotation = Quaternion::from_angle_y(-angle);
         // Full coordinate transform matrix
-        let full_rotation = ray_rotation * self.reference_rotation;
-        let full_rotation_inverse = full_rotation.invert().unwrap();
+        let full_rotation = ray_rotation * gradient_reference_rotation;
+        let full_rotation_inverse = full_rotation.conjugate();
         // Transform ray to 2D coordinates
         let ray_2d_dir = full_rotation * ray.dir;
-        assert!(ray_2d_dir.z.abs() < 1e-10); // DEBUG
+        debug_assert!(ray_2d_dir.z.abs() < 1e-10); // DEBUG
         let tau0 = ray_2d_dir.truncate();
         // Loop until we arrive at a point that is close enough to the surface
         let mut trial_ray = ray.clone(); // Current point and direction along the ray trajectory
@@ -180,9 +169,9 @@ impl LinearGRINFresnelMaterial {
         let mut trial_tau_2d = tau0.clone(); // Current tangent vector *in the 2D frame*
         let exit_intersection = loop {
             // Intersect trial ray with object to get approximation for arc length
-            let trial_intersection = match object.intersect_ray(&trial_ray) {
+            let trial_intersection = match object.intersect_ray(transform, &trial_ray) {
                 Some(trial_intersection) => trial_intersection,
-                None => object.intersect_line(&trial_ray).unwrap(),
+                None => object.intersect_line(transform, &trial_ray).unwrap(),
             };
             // Move along trajectory by the length of the cast ray, but not too far
             // to avoid missing concave parts of the geometry
@@ -237,7 +226,7 @@ impl LinearGRINFresnelMaterial {
         }
 
         // Interaction at the (potential) exit site
-        let exit_index = self.index_at_point(&exit_intersection.point, object.reference_point());
+        let exit_index = self.index_at_point(&exit_intersection.point, &transform.translation);
         match FresnelMaterial::fresnel_interaction(
             exit_index,
             self.outer_index,
@@ -248,7 +237,7 @@ impl LinearGRINFresnelMaterial {
             FresnelInteractionType::Reflection(reflected_ray) => {
                 // On reflection at the inner surface we stay inside the material
                 tracer.add_point(trace, TraceEvent::Reflection, reflected_ray.start);
-                self.inner_trace(reflected_ray, object, rng, tracer, trace)
+                self.inner_trace(reflected_ray, object, transform, gradient_reference_rotation, rng, tracer, trace)
             }
             FresnelInteractionType::Refraction(exit_ray) => {
                 // Ray exiting the object
@@ -265,6 +254,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
         ray: &Ray,
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         ctx: &mut RayGraphicsContext<T>,
         tracer: &mut T,
         trace: T::TraceID,
@@ -278,6 +268,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
             ray,
             intersection,
             object,
+            transform,
             &mut ctx.rng,
             tracer,
             trace,
@@ -291,12 +282,15 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
         ray: &Ray,
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
     ) -> Option<Ray> {
         // Calculate refractive index at the intersection point
-        let index = self.index_at_point(&intersection.point, object.reference_point());
+        let index = self.index_at_point(&intersection.point, &transform.translation);
+        // Calculate rotation that aligns the gradient direction with the y-axis
+        let gradient_reference_rotation = Self::calc_reference_rotation(self.gradient_dir, transform);
         // Calculate Fresnel interaction at the entry point
         match FresnelMaterial::fresnel_interaction(index, self.outer_index, ray, intersection, rng)
         {
@@ -308,7 +302,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
             FresnelInteractionType::Refraction(inner_ray) => {
                 // Refractions takes us into the material
                 tracer.add_point(trace, TraceEvent::Refraction, inner_ray.start);
-                self.inner_trace(inner_ray, object, rng, tracer, trace)
+                self.inner_trace(inner_ray, object, transform, gradient_reference_rotation, rng, tracer, trace)
             }
         }
     }

@@ -22,8 +22,8 @@ impl Ray {
             match ctx.scene.cast_ray(self) {
                 Some((obj_id, intersection)) => {
                     let material = ctx.scene.get_object_material(obj_id);
-                    let obj = ctx.scene.get_object(obj_id.0).unwrap();
-                    material.interact(self, &intersection, obj, ctx, tracer, trace)
+                    let (obj, transform) = ctx.scene.get_object(obj_id.0).unwrap();
+                    material.interact(self, &intersection, obj, transform, ctx, tracer, trace)
                 }
                 None => ctx.sky_color.clone(),
             }

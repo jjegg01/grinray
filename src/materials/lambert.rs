@@ -3,7 +3,7 @@ use rand_distr::Distribution;
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::RTObject, RTIntersection, Ray, TraceEvent, Tracer,
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, TraceEvent, Tracer,
 };
 
 use super::Material;
@@ -47,6 +47,7 @@ impl<T: Tracer> Material<T> for SimpleMaterial {
         ray: &Ray,
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
+        transform: &ObjectTransform,
         ctx: &mut RayGraphicsContext<T>,
         tracer: &mut T,
         trace: T::TraceID,
@@ -56,6 +57,7 @@ impl<T: Tracer> Material<T> for SimpleMaterial {
             ray,
             intersection,
             object,
+            transform,
             &mut ctx.rng,
             tracer,
             trace,
@@ -73,6 +75,7 @@ impl<T: Tracer> Material<T> for SimpleMaterial {
         ray: &Ray,
         intersection: &RTIntersection,
         _: &(dyn RTObject + Send + Sync),
+        _: &ObjectTransform,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
