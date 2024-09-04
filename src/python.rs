@@ -1,7 +1,7 @@
 use crate::*;
-use cgmath::{InnerSpace, Quaternion, Rad, Rotation3, Vector3};
+use cgmath::{Quaternion, Rad, Rotation3, Vector3};
 use graphics::{Camera, PerspectiveCamera, PerspectiveCameraParams, RayGraphicsContext};
-use objects::{ObjectTransform, Plane, Sphere};
+use objects::{Cuboid, ObjectTransform, Plane, Sphere};
 use slotmap::Key;
 use std::mem;
 
@@ -151,6 +151,10 @@ impl PyScene {
             Ok(self
                 .scene
                 .add_object(Box::new(obj.borrow().inner.clone()), transform.inner.clone(), mat))
+        } else if let Ok(obj) = obj.downcast_bound::<PyCuboid>(py) {
+            Ok(self
+                .scene
+                .add_object(Box::new(obj.borrow().inner.clone()), transform.inner.clone(), mat))
         } else {
             Err(PyTypeError::new_err("invalid argument"))
         }
@@ -204,6 +208,22 @@ impl PyPlane {
     fn new() -> Self {
         Self {
             inner: Plane::new(),
+        }
+    }
+}
+
+#[pyclass]
+#[pyo3(name = "Cuboid")]
+struct PyCuboid {
+    inner: Cuboid,
+}
+
+#[pymethods]
+impl PyCuboid {
+    #[new]
+    fn new(length_x: f64, length_y: f64, length_z: f64) -> Self {
+        Self {
+            inner: Cuboid::new(length_x, length_y, length_z),
         }
     }
 }
@@ -281,6 +301,7 @@ fn grinray(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyObjectTransform>()?;
     m.add_class::<PySphere>()?;
     m.add_class::<PyPlane>()?;
+    m.add_class::<PyCuboid>()?;
     m.add_class::<PySimpleMaterial>()?;
     m.add_class::<PyCheckerboardMaterial>()?;
     m.add_class::<PyFresnelMaterial>()?;
