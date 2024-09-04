@@ -9,7 +9,7 @@ use crate::{Ray, Tracer};
 use cgmath::{Vector3, Zero};
 
 impl Ray {
-    pub(crate) fn get_color<T: Tracer>(
+    pub fn get_color<T: Tracer>(
         &self,
         ctx: &mut RayGraphicsContext<T>,
         tracer: &mut T,
