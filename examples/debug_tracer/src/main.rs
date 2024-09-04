@@ -21,7 +21,7 @@ fn main() {
     // sphere which explains why some of rays appears to exit the sphere at "impossible" angles
     const SPHERE_RADIUS: f64 = 1.0;
     let sphere = Sphere::new(SPHERE_RADIUS);
-    let sphere_transform = ObjectTransform::new(Vector3::zero(), Some(Quaternion::from_angle_y(Rad(90.))));
+    let sphere_transform = ObjectTransform::new(Quaternion::from_angle_y(Rad(90.)), Vector3::zero());
     let material = LinearGRINFresnelMaterial::new(1.5, Vector3::new(0.1, 0., 0.), 1.0);
     let mut tracer = CountingTracer::new();
     let mut rng = Xoshiro256Plus::from_seed([

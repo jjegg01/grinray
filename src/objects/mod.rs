@@ -6,7 +6,7 @@ pub use cuboid::*;
 pub use plane::*;
 pub use sphere::*;
 
-use cgmath::{InnerSpace, Quaternion, Vector3};
+use cgmath::{InnerSpace, Quaternion, Vector3, Zero};
 
 use crate::{RTIntersection, Ray};
 
@@ -41,12 +41,22 @@ impl ObjectTransform {
     /// construct a new object transformation
     /// 
     /// Note: if the quarternion is not normalized, this function will normalize it first
-    pub fn new<R: Into<Quaternion<f64>>>(translation: Vector3<f64>, rotation: Option<R>) -> Self {
-        let rotation: Quaternion<f64> = match rotation {
-            Some(rotation) => rotation.into(),
-            None => Quaternion::new(1.0, 0.0, 0.0, 0.0),
-        };
-        Self { rotation: rotation.normalize(), translation }
+    pub fn new<R: Into<Quaternion<f64>>>(rotation: R, translation: Vector3<f64>) -> Self {
+        Self { rotation: rotation.into().normalize(), translation }
+    }
+
+    pub fn with_translation(translation: Vector3<f64>) -> Self {
+        Self {
+            rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
+            translation
+        }
+    }
+
+    pub fn with_rotation<R: Into<Quaternion<f64>>>(rotation: R) -> Self {
+        Self {
+            rotation: rotation.into().normalize(),
+            translation: Vector3::zero()
+        }
     }
 
     pub fn get_translation(&self) -> &Vector3<f64> {

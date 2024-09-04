@@ -14,7 +14,7 @@ fn main() {
     // on the z-axis
     const SPHERE_RADIUS: f64 = 10.;
     let particle = Sphere::new(SPHERE_RADIUS);
-    let particle_transform = ObjectTransform::new(Vector3::zero(), Some(Quaternion::from_angle_y(Rad(90.))));
+    let particle_transform = ObjectTransform::with_rotation(Quaternion::from_angle_y(Rad(90.)));
     const MEAN_INDEX: f64 = 1.52; // Typical polymer materials for refractive microparticles
     const GRADIENT_STRENGTH: f64 = 0.1;
     const MEDIUM_INDEX: f64 = 1.33; // Water

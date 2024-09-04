@@ -1,7 +1,7 @@
 //! Minimalistic setup for generating graphical output that is useful for
 //! debugging new objects types
 
-use cgmath::{Quaternion, Vector3, Zero};
+use cgmath::{Vector3, Zero};
 use grinray::{
     graphics::RayGraphicsContext,
     objects::{Cuboid, ObjectTransform, Plane},
@@ -13,10 +13,9 @@ use rand_xoshiro::Xoshiro256Plus;
 fn main() {
     // Setup objects and their transformations
     let plane = Plane::new();
-    let rotation: Option<Quaternion<f64>> = None;
-    let plane_transform = ObjectTransform::new((0.0, -1.0, 0.0).into(), rotation);
+    let plane_transform = ObjectTransform::with_translation((0.0, -1.0, 0.0).into());
     let cube = Cuboid::new(1.0, 1.0, 1.0);
-    let cube_transform = ObjectTransform::new((0.0, 0.0, -2.0).into(), rotation);
+    let cube_transform = ObjectTransform::with_translation((0.0, 0.0, -2.0).into());
     // Setup materials
     let checkerboard_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
     let lambert_mat = SimpleMaterial::new((1.0, 1.0, 1.0).into());

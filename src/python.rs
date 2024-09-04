@@ -172,10 +172,18 @@ impl PyObjectTransform {
     #[new]
     #[pyo3(signature = (translation, axis_angle=None))]
     fn new(translation: (f64, f64, f64), axis_angle: Option<((f64, f64, f64), f64)>) -> Self {
-        let rotation = axis_angle.map(|(axis, angle)| Quaternion::from_axis_angle(axis.into(), Rad(angle)) );
+        //let rotation = axis_angle.map(|(axis, angle)| Quaternion::from_axis_angle(axis.into(), Rad(angle)) );
         let translation = Vector3::new(translation.0, translation.1, translation.2);
+        let inner = match axis_angle {
+            Some((axis, angle)) => {
+                ObjectTransform::new(Quaternion::from_axis_angle(axis.into(), Rad(angle)), translation)
+            }
+            None => {
+                ObjectTransform::with_translation(translation)      
+            }
+        };
         Self {
-            inner: ObjectTransform::new(translation, rotation)
+            inner
         }
     }
 }
