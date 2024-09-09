@@ -19,14 +19,20 @@ pub struct Cuboid {
     pub length_z: f64
 }
 
+
+#[derive(Clone, Copy, Debug)]
+enum CubePlane { XLo, XHi, YLo, YHi, ZLo, ZHi }
+
 impl Cuboid {
     pub fn new(length_x: f64, length_y: f64, length_z: f64) -> Self {
         Self { length_x, length_y, length_z }
     }
-}
 
-impl RTObject for Cuboid {
-    fn intersect_ray(&self, transform: &ObjectTransform, ray: &crate::Ray) -> Option<crate::RTIntersection> {
+    /// Calculate the part of a ray that is inside this cuboid in terms of distances from the start
+    /// of the ray. Returns a tuple with the lower and upper bound of the distances as well as the
+    /// cube planes that are intersected at these limiting distances. If the first distance is
+    /// larger than the second distance, there is no intersection.
+    fn calc_raydist_bounds(&self, transform: &ObjectTransform, ray: &crate::Ray) -> ((f64, CubePlane), (f64, CubePlane)) {
         // This is basically the algorithm described here: https://tavianator.com/2011/ray_box.html
 
         // Transform ray to object frame
@@ -57,13 +63,45 @@ impl RTObject for Cuboid {
         // (same for y and z)
         // To keep track of the cube plane we intersected (for surface normal) we bundle the ray
         // distances and the corresponding cube planes into a tuple
-        #[derive(Clone, Copy, Debug)]
-        enum CubePlane { XLo, XHi, YLo, YHi, ZLo, ZHi }
         let (s_min_x, s_max_x) = minmax_pair(&(s_lower.x, CubePlane::XLo), &(s_upper.x, CubePlane::XHi));
         let (s_min_y, s_max_y) = minmax_pair(&(s_lower.y, CubePlane::YLo), &(s_upper.y, CubePlane::YHi));
         let (s_min_z, s_max_z) = minmax_pair(&(s_lower.z, CubePlane::ZLo), &(s_upper.z, CubePlane::ZHi));
         let s_min = max_pair(&s_min_x, &max_pair(&s_min_y, &s_min_z));
         let s_max = min_pair(&s_max_x, &min_pair(&s_max_y, &s_max_z));
+        
+        (s_min, s_max)
+    }
+
+    /// Construct a proper RTIntersection from a tuple containing the ray distance at which the
+    /// cuboid is entered/exited and the cube plane that is intersected
+    fn raydist_to_intersection(&self, s_intersect: (f64, CubePlane), transform: &ObjectTransform, ray: &crate::Ray) -> RTIntersection {
+        let ray_dist = s_intersect.0;
+        // To calculate the intersection point we can directly use the lab frame since distances
+        // are invariant under translations and rotations
+        let point = ray.start + ray_dist * ray.dir;
+        // We need to rotate the normal from the object frame to the lab frame though
+        let normal_object_frame = match s_intersect.1 {
+            CubePlane::XLo => -Vector3::unit_x(),
+            CubePlane::XHi => Vector3::unit_x(),
+            CubePlane::YLo => -Vector3::unit_y(),
+            CubePlane::YHi => Vector3::unit_y(),
+            CubePlane::ZLo => -Vector3::unit_z(),
+            CubePlane::ZHi => Vector3::unit_z(),
+        };
+        let normal = transform.rotation.rotate_vector(normal_object_frame);
+
+        RTIntersection {
+            ray_dist,
+            point,
+            normal,
+        }
+    }
+}
+
+impl RTObject for Cuboid {
+    fn intersect_ray(&self, transform: &ObjectTransform, ray: &crate::Ray) -> Option<crate::RTIntersection> {
+        // Calculate the upper and lower bounds on the ray distance
+        let (s_min, s_max) = self.calc_raydist_bounds(transform, ray);
 
         // If the interval [s_min,s_max] is empty, there is no intersection
         // If the interval is not empty, but s_max < 0, the intersection is behind the ray
@@ -81,37 +119,23 @@ impl RTObject for Cuboid {
                 return None
             }
 
-            let ray_dist = s_intersect.0;
-            // To calculate the intersection point we can directly use the lab frame since distances
-            // are invariant under translations and rotations
-            let point = ray.start + ray_dist * ray.dir;
-            // We need to rotate the normal from the object frame to the lab frame though
-            let normal_object_frame = match s_intersect.1 {
-                CubePlane::XLo => -Vector3::unit_x(),
-                CubePlane::XHi => Vector3::unit_x(),
-                CubePlane::YLo => -Vector3::unit_y(),
-                CubePlane::YHi => Vector3::unit_y(),
-                CubePlane::ZLo => -Vector3::unit_z(),
-                CubePlane::ZHi => Vector3::unit_z(),
-            };
-            let normal = transform.rotation.rotate_vector(normal_object_frame);
-
-            Some(RTIntersection {
-                ray_dist,
-                point,
-                normal,
-            })
+            Some(self.raydist_to_intersection(s_intersect, transform, ray))
         }
     }
 
     fn intersect_line(&self, transform: &ObjectTransform, line: &crate::Ray) -> Option<crate::RTIntersection> {
-        todo!()
-    }
+        // Calculate the upper and lower bounds on the ray distance
+        let (s_min, s_max) = self.calc_raydist_bounds(transform, line);
 
-    // fn reference_point(&self) -> &cgmath::Vector3<f64> {
-    //     todo!()
-    //     // Vector3::new(
-    //     //     (self.extent_x.0 + self.extent_x.1) / 2.,
-    //     //      y, z)
-    // }
+        // If the interval [s_min,s_max] is empty, there is no intersection
+        if s_max.0 < s_min.0 {
+            None
+        }
+        else {
+            // Choose the intersection point that is closest to the start of the ray
+            let s_intersect = if s_min.0.abs() < s_max.0.abs() { s_min } else { s_max };
+
+            Some(self.raydist_to_intersection(s_intersect, transform, line))
+        }
+    }
 }

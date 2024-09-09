@@ -43,11 +43,38 @@ impl RTObject for Plane {
         }
     }
 
-    fn intersect_line(&self, transform: &ObjectTransform,  _ray: &Ray) -> Option<RTIntersection> {
-        todo!()
+    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+        // Discard rays that are too close to being parallel
+        let origin = transform.translation;
+        let normal = transform.rotation.rotate_vector(Vector3::unit_y());
+        let nd = normal.dot(ray.dir);
+        if nd.abs() == 0.0 {
+            None
+        } else {
+            let ray_dist = (origin - ray.start).dot(normal) / nd;
+            let point = ray.start + ray_dist * ray.dir;
+            // If the intersection is at positive ray distances we use the same sign convention
+            // for the normal as in the intersect_ray case. Otherwise, we flip the sign again.
+            // This way, the reported normal of the intersection always points towards the start
+            // point of the ray.
+            let normal = if ray_dist > 0. {
+                if nd > 0. {
+                    -normal
+                } else {
+                    normal
+                }
+            } else {
+                if nd > 0. {
+                    normal
+                } else {
+                    -normal
+                }
+            };
+            Some(RTIntersection {
+                ray_dist,
+                point,
+                normal,
+            })
+        }
     }
-
-    // fn reference_point(&self) -> &Vector3<f64> {
-    //     &self.origin
-    // }
 }
