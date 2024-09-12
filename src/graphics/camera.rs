@@ -1,26 +1,29 @@
 use cgmath::{InnerSpace, Vector3, Zero};
 
-use crate::{graphics::util, graphics::RayGraphicsContext, Ray};
+use crate::{graphics::{util, RayGraphicsContext}, Ray, Tracer};
 
 const MAX_DEPTH: usize = 10;
 
-pub trait Camera {
+pub trait Camera<T: Tracer> {
     /// Build the ray corresponding to the given pixel coordinates
     fn build_screen_ray(&self, ix: usize, iy: usize) -> Ray;
     /// Get size of the image in pixels
     fn get_image_size(&self) -> (usize, usize);
+    /// Get number of samples for each pixel
+    fn get_samples(&self) -> usize;
     /// Render a given scene with this camera into a given image buffer
-    fn render<'a>(&self, ctx: &mut RayGraphicsContext<'a, ()>, buf: &mut [u32]) {
+    fn render<'a>(&self, ctx: &mut RayGraphicsContext<'a, T>, buf: &mut [u32], tracer: &mut T) {
         let pixels = self.get_image_size();
+        let num_samples = self.get_samples();
         for iy in 0..pixels.1 {
             for ix in 0..pixels.0 {
                 let ray = self.build_screen_ray(ix, iy);
                 let mut color = Vector3::zero();
-                const SAMPLES: usize = 32;
-                for _ in 0..SAMPLES {
-                    color += ray.get_color(ctx, &mut (), ());
+                for _ in 0..num_samples {
+                    let trace = tracer.new_trace(ray.start);
+                    color += ray.get_color(ctx, tracer, trace);
                 }
-                color = color / SAMPLES as f32;
+                color = color / num_samples as f32;
                 buf[iy * pixels.0 + ix] = util::color_vec3_to_u32(&color);
             }
         }
@@ -35,6 +38,7 @@ pub struct PerspectiveCameraParams {
     pub near: f64,
     pub fov: f64,
     pub pixels: (usize, usize),
+    pub samples: usize
 }
 
 impl Default for PerspectiveCameraParams {
@@ -46,6 +50,7 @@ impl Default for PerspectiveCameraParams {
             near: 1.0,
             fov: 50.0,
             pixels: (256, 256),
+            samples: 32
         }
     }
 }
@@ -54,6 +59,7 @@ pub struct PerspectiveCamera {
     eye: Vector3<f64>,
     up: Vector3<f64>,
     pixels: (usize, usize),
+    samples: usize,
     cell_size: (f64, f64),
     sideways: Vector3<f64>,
     rel_screen_origin: Vector3<f64>,
@@ -70,6 +76,7 @@ impl PerspectiveCamera {
         assert!(params.fov > 0.0 && params.fov < 180.0);
         let fov = params.fov;
         let pixels = params.pixels;
+        let samples = params.samples;
         // Actual calculation
         let screen_size_y = 2.0 * near * fov.to_radians().sin();
         let screen_size_x = screen_size_y * pixels.0 as f64 / pixels.1 as f64;
@@ -85,6 +92,7 @@ impl PerspectiveCamera {
             eye,
             up,
             pixels,
+            samples,
             cell_size,
             sideways,
             rel_screen_origin,
@@ -92,7 +100,7 @@ impl PerspectiveCamera {
     }
 }
 
-impl Camera for PerspectiveCamera {
+impl<T: Tracer> Camera<T> for PerspectiveCamera {
     fn build_screen_ray(&self, ix: usize, iy: usize) -> Ray {
         let start = self.eye;
         let dir = (self.rel_screen_origin
@@ -108,5 +116,9 @@ impl Camera for PerspectiveCamera {
 
     fn get_image_size(&self) -> (usize, usize) {
         self.pixels
+    }
+
+    fn get_samples(&self) -> usize {
+        self.samples
     }
 }

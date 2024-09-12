@@ -64,11 +64,11 @@ impl PyPerspectiveCamera {
     }
 
     fn render<'py>(&self, py: Python<'py>, scene: &PyScene) -> Bound<'py, PyBytes> {
-        let pixels = self.camera.get_image_size();
+        let pixels = Camera::<()>::get_image_size(&self.camera);
         let mut buf = vec![0u8; mem::size_of::<u32>() * pixels.0 * pixels.1];
         let mut ctx = RayGraphicsContext::with_defaults(&scene.scene);
         self.camera
-            .render(&mut ctx, bytemuck::cast_slice_mut(buf.as_mut_slice()));
+            .render(&mut ctx, bytemuck::cast_slice_mut(buf.as_mut_slice()), &mut ());
         PyBytes::new_bound(py, &buf)
     }
 }
