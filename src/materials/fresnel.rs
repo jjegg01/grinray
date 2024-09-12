@@ -43,29 +43,31 @@ impl FresnelMaterial {
     pub(crate) fn fresnel_interaction(
         index: f64,
         outer_index: f64,
-        ray: &Ray,
-        intersection: &RTIntersection,
+        incoming_ray_direction: Vector3<f64>,
+        incoming_ray_depth: usize,
+        intersection_point: Vector3<f64>,
+        intersection_normal: Vector3<f64>,
         rng: &mut Xoshiro256Plus,
     ) -> FresnelInteractionType {
         // Get refractive indices on the incoming and outgoing side of the interface
         // as well as "canonical" normal vector that points towards the incoming ray
-        let (n_in, n_out, normal) = if ray.dir.dot(intersection.normal) < 0. {
+        let (n_in, n_out, normal) = if incoming_ray_direction.dot(intersection_normal) < 0. {
             // Ray entering object, i.e. surface normal points towards incoming ray
-            (outer_index, index, intersection.normal)
+            (outer_index, index, intersection_normal)
         } else {
             // Ray leaving object
-            (index, outer_index, -intersection.normal)
+            (index, outer_index, -intersection_normal)
         };
         // -- Calculate reflected and transmitted ray intensities --
-        let l_dot_n = ray.dir.dot(normal);
+        let l_dot_n = incoming_ray_direction.dot(normal);
         let index_ratio = n_in / n_out;
         // Check for total reflection
         if index_ratio * index_ratio * (1. - l_dot_n * l_dot_n) > 1.0 {
-            let dir = ray.dir - 2. * l_dot_n * normal;
+            let dir = incoming_ray_direction - 2. * l_dot_n * normal;
             return FresnelInteractionType::Reflection(Ray {
-                start: intersection.point,
+                start: intersection_point,
                 dir,
-                depth: ray.depth - 1,
+                depth: incoming_ray_depth - 1,
             });
         }
         let cosine_term = l_dot_n; // Dot product gives cosine of incident angle
@@ -82,19 +84,19 @@ impl FresnelMaterial {
         // -- Monte-Carlo tracing --
         if rand::distributions::Uniform::new(0., 1.).sample(rng) < reflectance {
             // Reflection
-            let dir = ray.dir - 2. * l_dot_n * normal;
+            let dir = incoming_ray_direction - 2. * l_dot_n * normal;
             FresnelInteractionType::Reflection(Ray {
-                start: intersection.point,
+                start: intersection_point,
                 dir,
-                depth: ray.depth - 1,
+                depth: incoming_ray_depth - 1,
             })
         } else {
-            let dir = index_ratio * ray.dir - (index_ratio * cosine_term + sine_term) * normal;
+            let dir = index_ratio * incoming_ray_direction - (index_ratio * cosine_term + sine_term) * normal;
             // Refraction
             FresnelInteractionType::Refraction(Ray {
-                start: intersection.point,
+                start: intersection_point,
                 dir,
-                depth: ray.depth - 1,
+                depth: incoming_ray_depth - 1,
             })
         }
     }
@@ -153,7 +155,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                 tracer.add_point(trace, TraceEvent::End, intersection.point);
                 return None;
             }
-            match Self::fresnel_interaction(self.index, self.outer_index, &ray, &intersection, rng)
+            match Self::fresnel_interaction(self.index, self.outer_index, ray.dir, ray.depth, intersection.point, intersection.normal, rng)
             {
                 FresnelInteractionType::Reflection(next_ray) => {
                     tracer.add_point(trace, TraceEvent::Reflection, intersection.point);

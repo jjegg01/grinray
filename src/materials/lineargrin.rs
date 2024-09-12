@@ -167,7 +167,7 @@ impl LinearGRINFresnelMaterial {
         let mut trial_ray = ray.clone(); // Current point and direction along the ray trajectory
         let mut trial_s = 0.; // Current arclength distance along the trajectory
         let mut trial_tau_2d = tau0.clone(); // Current tangent vector *in the 2D frame*
-        let exit_intersection = loop {
+        let (exit_intersection, exit_tau) = loop {
             // Intersect trial ray with object to get approximation for arc length
             let trial_intersection = match object.intersect_ray(transform, &trial_ray) {
                 Some(trial_intersection) => trial_intersection,
@@ -188,7 +188,7 @@ impl LinearGRINFresnelMaterial {
             // If the exact point is close enough to the linear intersection, break loop
             let error = trial_point.distance(trial_intersection.point);
             if error < LINEAR_GRIN_ERROR {
-                break trial_intersection;
+                break (trial_intersection, trial_tau);
             }
             // Otherwise, we use the trial point as the start of our next attempt
             else {
@@ -230,8 +230,10 @@ impl LinearGRINFresnelMaterial {
         match FresnelMaterial::fresnel_interaction(
             exit_index,
             self.outer_index,
-            &ray,
-            &exit_intersection,
+            exit_tau,
+            ray.depth,
+            exit_intersection.point,
+            exit_intersection.normal,
             rng,
         ) {
             FresnelInteractionType::Reflection(reflected_ray) => {
@@ -292,7 +294,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
         // Calculate rotation that aligns the gradient direction with the y-axis
         let gradient_reference_rotation = Self::calc_reference_rotation(self.gradient_dir, transform);
         // Calculate Fresnel interaction at the entry point
-        match FresnelMaterial::fresnel_interaction(index, self.outer_index, ray, intersection, rng)
+        match FresnelMaterial::fresnel_interaction(index, self.outer_index, ray.dir, ray.depth, intersection.point, intersection.normal, rng)
         {
             FresnelInteractionType::Reflection(next_ray) => {
                 // Reflection is easy as the ray does not enter the material
