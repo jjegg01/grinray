@@ -201,3 +201,36 @@ impl CountingTracer {
         self.closed_traces
     }
 }
+
+/// A special tracer that does nothing by default and need to be triggered by a debugger first
+/// 
+/// This tracer is intended for situations where the number of rays is too large for the other
+/// tracers to handle. At the start of the program, this tracer implementation does nothing as the
+/// internal `toggle` field is set to `false`. By flipping this toggle to `true` through a debugger,
+/// the tracer starts to output all tracepoints to stderr. Through the use of appropriate break- or
+/// watchpoints, this can be used as a very customizable filter for tracing data.
+pub struct DebuggerTracer {
+    toggle: bool
+}
+
+impl Tracer for DebuggerTracer {
+    type TraceID = ();
+
+    fn new() -> Self {
+        Self { toggle: std::hint::black_box(false) }
+    }
+
+    fn new_trace(&mut self, _: Vector3<f64>) -> Self::TraceID {
+        ()
+    }
+
+    fn add_point(&mut self, _: Self::TraceID, event: TraceEvent, location: Vector3<f64>) {
+        if std::hint::black_box(self.toggle) {
+            eprintln!("{:?}@[{},{},{}]", event, location.x, location.y, location.z);
+        }
+    }
+
+    fn end_trace(&mut self, _: Self::TraceID) {
+        ()
+    }
+}
