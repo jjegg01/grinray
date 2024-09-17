@@ -1,6 +1,6 @@
 use crate::*;
 use cgmath::{Quaternion, Rad, Rotation3, Vector3};
-use graphics::{Camera, PerspectiveCamera, PerspectiveCameraParams, RayGraphicsContext};
+use graphics::{Camera, PerspectiveCamera, PerspectiveCameraParameters, RayGraphicsContext};
 use objects::{Cuboid, ObjectTransform, Plane, Sphere};
 use slotmap::Key;
 use std::mem;
@@ -57,9 +57,9 @@ struct PyPerspectiveCamera {
 #[pymethods]
 impl PyPerspectiveCamera {
     #[new]
-    fn new(params: &PyPerspectiveCameraParams) -> Self {
+    fn new(parameters: &PyPerspectiveCameraParameters) -> Self {
         Self {
-            camera: PerspectiveCamera::new(params.inner.clone()),
+            camera: PerspectiveCamera::new(parameters.inner.clone()),
         }
     }
 
@@ -74,17 +74,17 @@ impl PyPerspectiveCamera {
 }
 
 #[pyclass]
-#[pyo3(name = "PerspectiveCameraParams")]
-struct PyPerspectiveCameraParams {
-    inner: PerspectiveCameraParams,
+#[pyo3(name = "PerspectiveCameraParameters")]
+struct PyPerspectiveCameraParameters {
+    inner: PerspectiveCameraParameters,
 }
 
 #[pymethods]
-impl PyPerspectiveCameraParams {
+impl PyPerspectiveCameraParameters {
     #[new]
     fn new() -> Self {
         Self {
-            inner: PerspectiveCameraParams::default(),
+            inner: PerspectiveCameraParameters::default(),
         }
     }
 
@@ -304,7 +304,7 @@ impl PyLinearGRINFresnelMaterial {
 #[pymodule]
 fn grinray(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPerspectiveCamera>()?;
-    m.add_class::<PyPerspectiveCameraParams>()?;
+    m.add_class::<PyPerspectiveCameraParameters>()?;
     m.add_class::<PyScene>()?;
     m.add_class::<PyObjectTransform>()?;
     m.add_class::<PySphere>()?;

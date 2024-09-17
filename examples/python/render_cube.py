@@ -20,7 +20,7 @@ plane_material_id = scene.add_material(plane_material)
 scene.add_object(cube, cube_transform, simple_material_id)
 scene.add_object(plane, plane_transform, plane_material_id)
 # Create a camera with default config (eye at origin looking in negative z direction)
-cameraparams = grinray.PerspectiveCameraParams()
+cameraparams = grinray.PerspectiveCameraParameters()
 cameraparams.pixels = (1024,1024)
 camera = grinray.PerspectiveCamera(cameraparams)
 

@@ -1,8 +1,8 @@
-//! Minimalistic setup for generating graphical output of a single cube
+//! Minimalistic setup for generating graphical output of a single sphere in orthographic projection
 
 use cgmath::Vector3;
 use grinray::{
-    graphics::{Camera, PerspectiveCamera, PerspectiveCameraParameters, RayGraphicsContext}, objects::{Cuboid, ObjectTransform, Plane}, CheckerboardMaterial, DebuggerTracer, LinearGRINFresnelMaterial, Scene, Tracer
+    graphics::{Camera, OrthographicCamaraParameters, OrthographicCamera, RayGraphicsContext}, objects::{ObjectTransform, Plane, Sphere}, CheckerboardMaterial, DebuggerTracer, LinearGRINFresnelMaterial, Scene, Tracer
 };
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
@@ -11,11 +11,11 @@ fn main() {
     // Setup objects and their transformations
     let plane = Plane::new();
     let plane_transform = ObjectTransform::with_translation((0.0, -1.0, 0.0).into());
-    let cube = Cuboid::new(2.0, 2.0, 2.0);
-    let cube_transform = ObjectTransform::with_translation((0.0, 0.1, -3.0).into());
+    let sphere = Sphere::new(1.0);
+    let sphere_transform = ObjectTransform::with_translation((0.0, 0.0, -2.0).into());
     // Setup materials
     let checkerboard_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
-    let lambert_mat = LinearGRINFresnelMaterial::new(1.4, (0.0,0.1,0.0).into(), 1.0);
+    let lambert_mat = LinearGRINFresnelMaterial::new(1.4, (0.0,0.001,0.0).into(), 1.0);
     // let lambert_mat = SimpleMaterial::new((1.0, 1.0, 1.0).into());
     // Setup scene
     let mut tracer = DebuggerTracer::new();
@@ -23,9 +23,9 @@ fn main() {
     let checkerboard_mat = scene.add_material(Box::new(checkerboard_mat));
     let lambert_mat = scene.add_material(Box::new(lambert_mat));
     scene.add_object(Box::new(plane), plane_transform, checkerboard_mat);
-    scene.add_object(Box::new(cube), cube_transform, lambert_mat);
+    scene.add_object(Box::new(sphere), sphere_transform, lambert_mat);
     // Create camera
-    let camera = PerspectiveCamera::new(PerspectiveCameraParameters {
+    let camera = OrthographicCamera::new(OrthographicCamaraParameters {
         pixels: (1024,1024),
         samples: 32,
         ..Default::default()
@@ -46,5 +46,5 @@ fn main() {
     let mut img = image::RgbaImage::from_vec(1024, 1024, bytemuck::cast_slice(buf.as_slice()).to_vec())
         .unwrap();
     image::imageops::flip_vertical_in_place(&mut img);
-    img.save("cube.png").expect("Failed to save image");
+    img.save("sphere_ortho.png").expect("Failed to save image");
 }
