@@ -70,14 +70,16 @@ impl FresnelMaterial {
                 depth: incoming_ray_depth - 1,
             });
         }
-        let cosine_term = l_dot_n; // Dot product gives cosine of incident angle
-        let sine_term = (1. - index_ratio * index_ratio * (1. - l_dot_n * l_dot_n)).sqrt(); // 1 - cos^2 = sin
-                                                                                            // Fresnel equations
-        let reflectance_s = ((index_ratio * (-cosine_term) - sine_term)
-            / (index_ratio * (-cosine_term) + sine_term))
+        // Dot product gives cosine of incident angle, but we need to flip the normal hence the sign
+        let cosine_term = -l_dot_n; 
+        // Since 1 - cos^2 = sin, this term contains the sine of the incident angle
+        let sine_term = (1. - index_ratio * index_ratio * (1. - l_dot_n * l_dot_n)).sqrt(); 
+        // Fresnel equations
+        let reflectance_s = ((index_ratio * cosine_term - sine_term)
+            / (index_ratio * cosine_term + sine_term))
             .powf(2.);
-        let reflectance_p = ((index_ratio * sine_term - (-cosine_term))
-            / (index_ratio * sine_term + (-cosine_term)))
+        let reflectance_p = ((index_ratio * sine_term - cosine_term)
+            / (index_ratio * sine_term + cosine_term))
             .powf(2.);
         // TODO: track polarization
         let reflectance = (reflectance_p + reflectance_s) / 2.;
@@ -91,7 +93,7 @@ impl FresnelMaterial {
                 depth: incoming_ray_depth - 1,
             })
         } else {
-            let dir = index_ratio * incoming_ray_direction - (index_ratio * cosine_term + sine_term) * normal;
+            let dir = index_ratio * incoming_ray_direction - (index_ratio * l_dot_n + sine_term) * normal;
             // Refraction
             FresnelInteractionType::Refraction(Ray {
                 start: intersection_point,
