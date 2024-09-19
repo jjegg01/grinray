@@ -4,7 +4,7 @@ use core::f64;
 
 use cgmath::{Rotation, Vector3};
 
-use crate::{util::{max_pair, min_pair, minmax_pair}, RTIntersection, Ray, RAYDIST_EPSILON};
+use crate::{util::{max_pair, min_pair, minmax_pair}, RTIntersection, RAYDIST_EPSILON};
 
 use super::{ObjectTransform, RTObject};
 
@@ -36,11 +36,7 @@ impl Cuboid {
         // This is basically the algorithm described here: https://tavianator.com/2011/ray_box.html
 
         // Transform ray to object frame
-        let ray_object_frame = Ray {
-            start: transform.rotation.conjugate().rotate_vector(ray.start - transform.translation),
-            dir: transform.rotation.conjugate().rotate_vector(ray.dir),
-            depth: ray.depth,
-        };
+        let ray_object_frame = transform.ray_to_object_frame(&ray);
 
         // Calculate ray distances to intersection points with each plane
         // Note

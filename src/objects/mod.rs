@@ -6,7 +6,7 @@ pub use cuboid::*;
 pub use plane::*;
 pub use sphere::*;
 
-use cgmath::{InnerSpace, Quaternion, Vector3, Zero};
+use cgmath::{InnerSpace, Quaternion, Rotation, Vector3, Zero};
 
 use crate::{RTIntersection, Ray};
 
@@ -65,5 +65,13 @@ impl ObjectTransform {
 
     pub fn get_rotation(&self) -> &Quaternion<f64> {
         &self.rotation
+    }
+
+    pub(crate) fn ray_to_object_frame(&self, ray: &Ray) -> Ray {
+        Ray {
+            start: self.rotation.conjugate().rotate_vector(ray.start - self.translation),
+            dir: self.rotation.conjugate().rotate_vector(ray.dir),
+            depth: ray.depth,
+        }
     }
 }
