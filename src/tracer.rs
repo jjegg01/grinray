@@ -220,8 +220,10 @@ impl Tracer for DebuggerTracer {
         Self { toggle: std::hint::black_box(false) }
     }
 
-    fn new_trace(&mut self, _: Vector3<f64>) -> Self::TraceID {
-        ()
+    fn new_trace(&mut self, location: Vector3<f64>) -> Self::TraceID {
+        if std::hint::black_box(self.toggle) {
+            eprintln!("{:?}@[{},{},{}]", TraceEvent::Start, location.x, location.y, location.z);
+        }
     }
 
     fn add_point(&mut self, _: Self::TraceID, event: TraceEvent, location: Vector3<f64>) {
