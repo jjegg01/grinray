@@ -29,35 +29,44 @@ pub trait RTObject {
     // fn reference_point(&self) -> &Vector3<f64>;
 }
 
-
 /// Representation for a transformation of a geometric object consisting of a rotation followed by
 /// a translation
 #[derive(Clone)]
 pub struct ObjectTransform {
     pub(crate) rotation: Quaternion<f64>,
-    pub(crate) translation: Vector3<f64>
+    pub(crate) translation: Vector3<f64>,
 }
 
 impl ObjectTransform {
     /// Takes a rotation (as a quarternion) and a translation (as a displacement vector) to
     /// construct a new object transformation
-    /// 
+    ///
     /// Note: if the quarternion is not normalized, this function will normalize it first
     pub fn new<R: Into<Quaternion<f64>>>(rotation: R, translation: Vector3<f64>) -> Self {
-        Self { rotation: rotation.into().normalize(), translation }
+        Self {
+            rotation: rotation.into().normalize(),
+            translation,
+        }
     }
 
     pub fn with_translation(translation: Vector3<f64>) -> Self {
         Self {
             rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
-            translation
+            translation,
         }
     }
 
     pub fn with_rotation<R: Into<Quaternion<f64>>>(rotation: R) -> Self {
         Self {
             rotation: rotation.into().normalize(),
-            translation: Vector3::zero()
+            translation: Vector3::zero(),
+        }
+    }
+
+    pub fn identity() -> Self {
+        Self {
+            rotation: Quaternion::new(1.0, 0.0, 0.0, 0.0),
+            translation: Vector3::zero(),
         }
     }
 
@@ -71,7 +80,10 @@ impl ObjectTransform {
 
     pub(crate) fn ray_to_object_frame(&self, ray: &Ray) -> Ray {
         Ray {
-            start: self.rotation.conjugate().rotate_vector(ray.start - self.translation),
+            start: self
+                .rotation
+                .conjugate()
+                .rotate_vector(ray.start - self.translation),
             dir: self.rotation.conjugate().rotate_vector(ray.dir),
             depth: ray.depth,
         }
