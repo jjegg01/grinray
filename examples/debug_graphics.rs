@@ -5,7 +5,7 @@ use cgmath::{Vector3, Zero};
 use grinray::{
     graphics::RayGraphicsContext,
     objects::{Cuboid, ObjectTransform, Plane},
-    CheckerboardMaterial, Ray, Scene, SimpleMaterial,
+    CheckerboardMaterial, FullTracer, Ray, Scene, SimpleMaterial, Tracer,
 };
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
@@ -20,7 +20,8 @@ fn main() {
     let checkerboard_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
     let lambert_mat = SimpleMaterial::new((1.0, 1.0, 1.0).into());
     // Setup scene
-    let mut scene: Scene<()> = Scene::new();
+    let mut tracer = FullTracer::new();
+    let mut scene: Scene<FullTracer> = Scene::new();
     let checkerboard_mat = scene.add_material(Box::new(checkerboard_mat));
     let lambert_mat = scene.add_material(Box::new(lambert_mat));
     scene.add_object(Box::new(plane), plane_transform, checkerboard_mat);
@@ -40,6 +41,21 @@ fn main() {
         dir: -Vector3::unit_z(),
         depth: 10,
     };
-    let color = ray.get_color(&mut ctx, &mut (), ());
+    let trace = tracer.new_trace(ray.start);
+    let color = ray.get_color(&mut ctx, &mut tracer, trace);
     dbg!(color);
+    tracer.end_trace(trace);
+    // Output ray path (skipping intermediates)
+    let trace = &tracer.get_traces()[0];
+    for point in trace {
+        match point.event {
+            grinray::TraceEvent::Intermediate => {}
+            _ => {
+                println!(
+                    "{:?}@[{},{},{}]",
+                    point.event, point.location.x, point.location.y, point.location.z
+                );
+            }
+        }
+    }
 }
