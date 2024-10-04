@@ -1,7 +1,7 @@
 //! Example for using the debug tracing functionality to sample the ray distribution in a simple
 //! scene. This is mostly useful for verifying the physical correctness of new materials / shapes.
 
-use cgmath::{Quaternion, Rad, Rotation3, Vector3, Zero};
+use cgmath::Vector3;
 use grinray::{
     objects::{ObjectTransform, RTObject, Sphere}, CountingTracer, CountingTreeNode, LinearGRINFresnelMaterial, Material, Ray, TraceEvent, Tracer
 };
@@ -21,8 +21,8 @@ fn main() {
     // sphere which explains why some of rays appears to exit the sphere at "impossible" angles
     const SPHERE_RADIUS: f64 = 1.0;
     let sphere = Sphere::new(SPHERE_RADIUS);
-    let sphere_transform = ObjectTransform::new(Quaternion::from_angle_y(Rad(90.)), Vector3::zero());
-    let material = LinearGRINFresnelMaterial::new(1.5, Vector3::new(0.1, 0., 0.), 1.0);
+    let sphere_transform = ObjectTransform::identity();
+    let material = LinearGRINFresnelMaterial::new(1.4, Vector3::new(0.1, 0., 0.), 1.0);
     let mut tracer = CountingTracer::new();
     let mut rng = Xoshiro256Plus::from_seed([
         9, 41, 26, 176, 113, 164, 141, 6, 251, 27, 52, 143, 10, 196, 76, 147, 99, 215, 103, 223,
@@ -59,7 +59,7 @@ fn main() {
             tracer.add_point(
                 trace,
                 grinray::TraceEvent::End,
-                final_ray.start + final_ray.dir * 4. * SPHERE_RADIUS,
+                final_ray.start + final_ray.dir * 8. * SPHERE_RADIUS,
             );
             tracer.end_trace(trace);
         }
