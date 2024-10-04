@@ -1,8 +1,10 @@
 mod cuboid;
+mod cylinder;
 mod plane;
 mod sphere;
 
 pub use cuboid::*;
+pub use cylinder::*;
 pub use plane::*;
 pub use sphere::*;
 
