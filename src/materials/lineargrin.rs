@@ -4,8 +4,7 @@ use cgmath::{InnerSpace, MetricSpace, Quaternion, Rotation, Rotation3, Vector2, 
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, FresnelInteractionType, FresnelMaterial,
-    RTIntersection, Ray, TraceEvent, Tracer,
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, unwrap_lost_ray, FresnelInteractionType, FresnelMaterial, RTIntersection, Ray, TraceEvent, Tracer
 };
 
 use super::Material;
@@ -169,9 +168,14 @@ impl LinearGRINFresnelMaterial {
         let mut trial_tau_2d = tau0.clone(); // Current tangent vector *in the 2D frame*
         let (exit_intersection, exit_tau) = loop {
             // Intersect trial ray with object to get approximation for arc length
+            // Note: This is a bit more intricate than it might look. We want to
+            // move along the trajectory of the ray so we test first for an
+            // intersection going forward. If that does not succeed, we also allow
+            // going backwards (and ignore the minimum step length).
             let trial_intersection = match object.intersect_ray(transform, &trial_ray) {
                 Some(trial_intersection) => trial_intersection,
-                None => object.intersect_line(transform, &trial_ray).unwrap(),
+                None => unwrap_lost_ray!(object.intersect_line(transform, &trial_ray),
+                    "cannot find way back to object during GRIN tracing"),
             };
             // Move along trajectory by the length of the cast ray, but not too far
             // to avoid missing concave parts of the geometry

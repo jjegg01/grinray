@@ -21,3 +21,23 @@ pub(crate) fn min_pair<K: PartialOrd + Copy, V: Copy>(a: &(K, V), b: &(K, V)) ->
 pub(crate) fn max_pair<K: PartialOrd + Copy, V: Copy>(a: &(K, V), b: &(K, V)) -> (K, V) {
     if a.0 < b.0 { *b } else { *a }
 }
+
+#[macro_export]
+/// Macro for reporting lost rays, if the corresponding feature is enabled
+/// (otherwise does the same as the ? operator)
+macro_rules! unwrap_lost_ray {
+    ($e: expr, $msg: literal) => {
+        if cfg!(feature = "report-lost-rays") {
+            match $e {
+                Some(x) => x,
+                None => {
+                    eprintln!("LOST_RAY: {}", $msg);
+                    return None;
+                },
+            }
+        }
+        else {
+            $e?
+        }
+    };
+}
