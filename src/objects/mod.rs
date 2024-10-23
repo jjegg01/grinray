@@ -1,10 +1,12 @@
 mod cuboid;
 mod cylinder;
+mod hemisphere;
 mod plane;
 mod sphere;
 
 pub use cuboid::*;
 pub use cylinder::*;
+pub use hemisphere::*;
 pub use plane::*;
 pub use sphere::*;
 
