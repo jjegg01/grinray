@@ -33,6 +33,7 @@ fn main() {
     let camera = PerspectiveCamera::new(PerspectiveCameraParameters {
         pixels: (1024, 1024),
         samples: 32,
+        max_depth: 20,
         ..Default::default()
     });
     // Create graphics context

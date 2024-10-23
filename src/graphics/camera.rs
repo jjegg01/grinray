@@ -2,8 +2,6 @@ use cgmath::{InnerSpace, Vector3, Zero};
 
 use crate::{graphics::{util, RayGraphicsContext}, Ray, Tracer};
 
-const MAX_DEPTH: usize = 10;
-
 // -- Generic camera trait --
 
 pub trait Camera<T: Tracer> {
@@ -46,7 +44,9 @@ pub struct OrthographicCamaraParameters {
     /// The number of pixels in the resulting image
     pub pixels: (usize, usize),
     /// The number of samples to take for each ray
-    pub samples: usize
+    pub samples: usize,
+    /// The maximum depth (i.e., number of interactions) allowed for each ray before it is discarded
+    pub max_depth: usize
 }
 
 impl Default for OrthographicCamaraParameters {
@@ -57,7 +57,8 @@ impl Default for OrthographicCamaraParameters {
             up: Vector3::unit_y(),
             projection_height: 4.0,
             pixels: (256, 256),
-            samples: 32
+            samples: 32,
+            max_depth: 10
         }
     }
 }
@@ -70,6 +71,7 @@ pub struct OrthographicCamera {
     screen_origin: Vector3<f64>,
     pixels: (usize, usize),
     samples: usize,
+    max_depth: usize
 }
 
 impl OrthographicCamera {
@@ -98,6 +100,7 @@ impl OrthographicCamera {
             screen_origin,
             pixels,
             samples: parameters.samples,
+            max_depth: parameters.max_depth
         }
     }
 }
@@ -108,7 +111,7 @@ impl<T: Tracer> Camera<T> for OrthographicCamera {
         let start = self.screen_origin
             + self.cell_size.0 * (0.5 + ix as f64) * self.sideways
             + self.cell_size.1 * (0.5 + iy as f64) * self.up;
-        Ray { start, dir: self.orientation, depth: MAX_DEPTH }
+        Ray { start, dir: self.orientation, depth: self.max_depth }
     }
 
     fn get_image_size(&self) -> (usize, usize) {
@@ -137,7 +140,9 @@ pub struct PerspectiveCameraParameters {
     /// The number of pixels in the resulting image
     pub pixels: (usize, usize),
     /// The number of samples to take for each ray
-    pub samples: usize
+    pub samples: usize,
+    /// The maximum depth (i.e., number of interactions) allowed for each ray before it is discarded
+    pub max_depth: usize
 }
 
 impl Default for PerspectiveCameraParameters {
@@ -149,7 +154,8 @@ impl Default for PerspectiveCameraParameters {
             near: 1.0,
             fov: 50.0,
             pixels: (256, 256),
-            samples: 32
+            samples: 32,
+            max_depth: 10
         }
     }
 }
@@ -162,6 +168,7 @@ pub struct PerspectiveCamera {
     cell_size: (f64, f64),
     sideways: Vector3<f64>,
     rel_screen_origin: Vector3<f64>,
+    max_depth: usize
 }
 
 impl PerspectiveCamera {
@@ -176,6 +183,7 @@ impl PerspectiveCamera {
         let fov = parameters.fov;
         let pixels = parameters.pixels;
         let samples = parameters.samples;
+        let max_depth = parameters.max_depth;
         // -- Actual calculation --
         // First determine the screen size in world coordinates
         let screen_size_y = 2.0 * near * fov.to_radians().sin();
@@ -199,6 +207,7 @@ impl PerspectiveCamera {
             cell_size,
             sideways,
             rel_screen_origin,
+            max_depth
         }
     }
 }
@@ -213,7 +222,7 @@ impl<T: Tracer> Camera<T> for PerspectiveCamera {
         Ray {
             start,
             dir,
-            depth: MAX_DEPTH,
+            depth: self.max_depth,
         }
     }
 
