@@ -1,7 +1,7 @@
 use crate::*;
 use cgmath::{Quaternion, Rad, Rotation3, Vector3};
 use graphics::{Camera, PerspectiveCamera, PerspectiveCameraParameters, RayGraphicsContext};
-use objects::{Cuboid, ObjectTransform, Plane, Sphere};
+use objects::{Cuboid, Cylinder, Hemisphere, ObjectTransform, Plane, Sphere};
 use slotmap::Key;
 use std::mem;
 
@@ -155,6 +155,14 @@ impl PyScene {
             Ok(self
                 .scene
                 .add_object(Box::new(obj.borrow().inner.clone()), transform.inner.clone(), mat))
+        } else if let Ok(obj) = obj.downcast_bound::<PyCylinder>(py) {
+            Ok(self
+                .scene
+                .add_object(Box::new(obj.borrow().inner.clone()), transform.inner.clone(), mat))
+        } else if let Ok(obj) = obj.downcast_bound::<PyHemisphere>(py) {
+            Ok(self
+                .scene
+                .add_object(Box::new(obj.borrow().inner.clone()), transform.inner.clone(), mat))
         } else {
             Err(PyTypeError::new_err("invalid argument"))
         }
@@ -237,6 +245,38 @@ impl PyCuboid {
 }
 
 #[pyclass]
+#[pyo3(name = "Hemisphere")]
+struct PyCylinder {
+    inner: Cylinder,
+}
+
+#[pymethods]
+impl PyCylinder {
+    #[new]
+    fn new(radius: f64, length: f64) -> Self {
+        Self {
+            inner: Cylinder::new(radius, length),
+        }
+    }
+}
+
+#[pyclass]
+#[pyo3(name = "Hemisphere")]
+struct PyHemisphere {
+    inner: Hemisphere,
+}
+
+#[pymethods]
+impl PyHemisphere {
+    #[new]
+    fn new(radius: f64) -> Self {
+        Self {
+            inner: Hemisphere::new(radius),
+        }
+    }
+}
+
+#[pyclass]
 #[pyo3(name = "SimpleMaterial")]
 struct PySimpleMaterial {
     inner: SimpleMaterial,
@@ -310,6 +350,8 @@ fn grinray(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PySphere>()?;
     m.add_class::<PyPlane>()?;
     m.add_class::<PyCuboid>()?;
+    m.add_class::<PyCylinder>()?;
+    m.add_class::<PyHemisphere>()?;
     m.add_class::<PySimpleMaterial>()?;
     m.add_class::<PyCheckerboardMaterial>()?;
     m.add_class::<PyFresnelMaterial>()?;
