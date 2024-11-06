@@ -18,7 +18,7 @@ pub(crate) fn lambert_next_ray(
         return None;
     }
     let distr = rand_distr::Normal::new(0.0, 1.0).unwrap();
-    let unit_random = Vector3::new(distr.sample(rng), distr.sample(rng), distr.sample(rng));
+    let unit_random = Vector3::new(distr.sample(rng), distr.sample(rng), distr.sample(rng)).normalize();
     Some(Ray {
         start: intersection.point,
         dir: (intersection.normal + unit_random).normalize(),
