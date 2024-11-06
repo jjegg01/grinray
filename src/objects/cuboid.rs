@@ -4,7 +4,7 @@ use core::f64;
 
 use cgmath::{Rotation, Vector3};
 
-use crate::{util::{max_pair, min_pair, minmax_pair}, RTIntersection, RAYDIST_EPSILON};
+use crate::{util::{max_pair, min_pair, minmax_pair}, RTIntersection, World};
 
 use super::{ObjectTransform, RTObject};
 
@@ -95,7 +95,7 @@ impl Cuboid {
 }
 
 impl RTObject for Cuboid {
-    fn intersect_ray(&self, transform: &ObjectTransform, ray: &crate::Ray) -> Option<crate::RTIntersection> {
+    fn intersect_ray(&self, transform: &ObjectTransform, ray: &crate::Ray, world: &World) -> Option<crate::RTIntersection> {
         // Calculate the upper and lower bounds on the ray distance
         let (s_min, s_max) = self.calc_raydist_bounds(transform, ray);
 
@@ -108,10 +108,10 @@ impl RTObject for Cuboid {
         else {
             // If s_min is negative, we are inside the cube, i.e. the intersection is at s_max.
             // Otherwise, it is at s_min
-            let s_intersect = if s_min.0 < RAYDIST_EPSILON { s_max } else { s_min };
+            let s_intersect = if s_min.0 < world.ray_distance_epsilon { s_max } else { s_min };
 
             // Ignore intersection if it is too close
-            if s_intersect.0 < RAYDIST_EPSILON {
+            if s_intersect.0 < world.ray_distance_epsilon {
                 return None
             }
 
@@ -119,7 +119,7 @@ impl RTObject for Cuboid {
         }
     }
 
-    fn intersect_line(&self, transform: &ObjectTransform, line: &crate::Ray) -> Option<crate::RTIntersection> {
+    fn intersect_line(&self, transform: &ObjectTransform, line: &crate::Ray, _: &World) -> Option<crate::RTIntersection> {
         // Calculate the upper and lower bounds on the ray distance
         let (s_min, s_max) = self.calc_raydist_bounds(transform, line);
 

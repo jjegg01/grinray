@@ -317,9 +317,9 @@ struct PyFresnelMaterial {
 #[pymethods]
 impl PyFresnelMaterial {
     #[new]
-    fn new(index: f64, outer_index: f64) -> Self {
+    fn new(index: f64) -> Self {
         Self {
-            inner: FresnelMaterial::new(index, outer_index),
+            inner: FresnelMaterial::new(index),
         }
     }
 }
@@ -333,9 +333,9 @@ struct PyLinearGRINFresnelMaterial {
 #[pymethods]
 impl PyLinearGRINFresnelMaterial {
     #[new]
-    fn new(reference_index: f64, gradient: (f64, f64, f64), outer_index: f64) -> Self {
+    fn new(reference_index: f64, gradient: (f64, f64, f64)) -> Self {
         Self {
-            inner: LinearGRINFresnelMaterial::new(reference_index, gradient.into(), outer_index),
+            inner: LinearGRINFresnelMaterial::new(reference_index, gradient.into()),
         }
     }
 }

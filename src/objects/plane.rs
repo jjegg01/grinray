@@ -1,6 +1,6 @@
 use cgmath::{InnerSpace, Rotation, Vector3};
 
-use crate::{RTIntersection, Ray, RAYDIST_EPSILON};
+use crate::{RTIntersection, Ray, World};
 
 use super::{ObjectTransform, RTObject};
 
@@ -18,7 +18,7 @@ impl Plane {
 }
 
 impl RTObject for Plane {
-    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray, world: &World) -> Option<RTIntersection> {
         // Discard rays that are too close to being parallel
         let origin = transform.translation;
         let normal = transform.rotation.rotate_vector(Vector3::unit_y());
@@ -27,7 +27,7 @@ impl RTObject for Plane {
             None
         } else {
             let ray_dist = (origin - ray.start).dot(normal) / nd;
-            if ray_dist >= RAYDIST_EPSILON {
+            if ray_dist >= world.ray_distance_epsilon {
                 let point = ray.start + ray_dist * ray.dir;
                 // Set the intersection normal such that it always points "against" the direction
                 // of the incoming ray
@@ -43,7 +43,7 @@ impl RTObject for Plane {
         }
     }
 
-    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray, _: &World) -> Option<RTIntersection> {
         // Discard rays that are too close to being parallel
         let origin = transform.translation;
         let normal = transform.rotation.rotate_vector(Vector3::unit_y());

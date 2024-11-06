@@ -13,7 +13,7 @@ pub use sphere::*;
 
 use cgmath::{InnerSpace, Quaternion, Rotation, Vector3, Zero};
 
-use crate::{RTIntersection, Ray};
+use crate::{RTIntersection, Ray, World};
 
 /// Trait for objects that can be intersected by straight lines, i.e. objects that can be raytraced
 pub trait RTObject {
@@ -21,12 +21,12 @@ pub trait RTObject {
     /// start of the ray).
     ///
     /// This function does *not* consider intersections that are "behind" the start of the ray
-    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection>;
+    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray, world: &World) -> Option<RTIntersection>;
     /// Closest intersection with a line.
     ///
     /// This function also checks for intersections "behind" the start of the given ray and does
     /// *not* have a minimum distance between the ray start and the intersection point.
-    fn intersect_line(&self, transform: &ObjectTransform, line: &Ray) -> Option<RTIntersection>;
+    fn intersect_line(&self, transform: &ObjectTransform, line: &Ray, world: &World) -> Option<RTIntersection>;
     // /// Some materials may introduce material properties with a spatial dependency. This point is
     // /// used as a reference for these properties.
     // fn reference_point(&self) -> &Vector3<f64>;

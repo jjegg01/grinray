@@ -18,7 +18,7 @@ use crate::{
     graphics::RayGraphicsContext,
     objects::{ObjectTransform, RTObject},
     ray::{RTIntersection, Ray},
-    Tracer,
+    Tracer, World,
 };
 
 /// Trait for describing light matter interactions
@@ -47,6 +47,7 @@ pub trait Material<T: Tracer> {
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
         transform: &ObjectTransform,
+        world: &World,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,

@@ -2,7 +2,7 @@
 
 use cgmath::Vector3;
 use grinray::{
-    graphics::{Camera, PerspectiveCamera, PerspectiveCameraParameters, RayGraphicsContext}, objects::{sdf, ObjectTransform, Plane}, CheckerboardMaterial, DebuggerTracer, LinearGRINFresnelMaterial, Scene, Tracer
+    graphics::{Camera, PerspectiveCamera, PerspectiveCameraParameters, RayGraphicsContext}, objects::{sdf, ObjectTransform, Plane}, CheckerboardMaterial, DebuggerTracer, LinearGRINFresnelMaterial, Scene, Tracer, World
 };
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
@@ -15,7 +15,7 @@ fn main() {
     let particle_transform = ObjectTransform::with_translation((0.0, 0.0, -2.0).into());
     // Setup materials
     let plane_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
-    let particle_mat = LinearGRINFresnelMaterial::new(1.4, (0.0,0.1,0.0).into(), 1.0);
+    let particle_mat = LinearGRINFresnelMaterial::new(1.4, (0.0,0.1,0.0).into());
     // Setup scene
     let mut tracer = DebuggerTracer::new();
     let mut scene: Scene<DebuggerTracer> = Scene::new();
@@ -33,6 +33,7 @@ fn main() {
     let mut ctx = RayGraphicsContext::new(
         &scene,
         (1.0, 1.0, 1.0).into(),
+        World::default(),
         Xoshiro256Plus::from_seed([
             9, 41, 26, 176, 113, 164, 141, 6, 251, 27, 52, 143, 10, 196, 76, 147, 99, 215, 103,
             223, 78, 137, 249, 101, 252, 6, 139, 184, 69, 177, 191, 211,

@@ -3,7 +3,7 @@
 
 use cgmath::Vector3;
 use grinray::{
-    objects::{ObjectTransform, RTObject, Sphere}, CountingTracer, CountingTreeNode, LinearGRINFresnelMaterial, Material, Ray, TraceEvent, Tracer
+    objects::{ObjectTransform, RTObject, Sphere}, CountingTracer, CountingTreeNode, LinearGRINFresnelMaterial, Material, Ray, TraceEvent, Tracer, World
 };
 use pyo3::{
     prelude::*,
@@ -22,8 +22,9 @@ fn main() {
     const SPHERE_RADIUS: f64 = 1.0;
     let sphere = Sphere::new(SPHERE_RADIUS);
     let sphere_transform = ObjectTransform::identity();
-    let material = LinearGRINFresnelMaterial::new(1.4, Vector3::new(0.1, 0., 0.), 1.0);
+    let material = LinearGRINFresnelMaterial::new(1.4, Vector3::new(0.1, 0., 0.));
     let mut tracer = CountingTracer::new();
+    let world = World::default();
     let mut rng = Xoshiro256Plus::from_seed([
         9, 41, 26, 176, 113, 164, 141, 6, 251, 27, 52, 143, 10, 196, 76, 147, 99, 215, 103, 223,
         78, 137, 249, 101, 252, 6, 139, 184, 69, 177, 191, 211,
@@ -44,14 +45,14 @@ fn main() {
         // Get the intersection of the ray and the sphere
         // Note: Since a sphere is convex, the outgoing ray cannot intersect with the sphere again
         // so we only need to do one intersection test per ray
-        let intersection = sphere.intersect_ray(&sphere_transform, &ray);
+        let intersection = sphere.intersect_ray(&sphere_transform, &ray, &world);
         // Repeat the material interaction multiple times to get a statistically significant sample
         // of the ray distribution inside the sphere
         for _ in 0..SAMPLES_PER_RAY {
             let trace = tracer.new_trace(ray.start);
             let final_ray = match &intersection {
                 Some(intersection) => material
-                    .next_ray(&ray, intersection, &sphere, &sphere_transform, &mut rng, &mut tracer, trace)
+                    .next_ray(&ray, intersection, &sphere, &sphere_transform, &world, &mut rng, &mut tracer, trace)
                     .expect("Raytracing failed: recursion limit exceeded"),
                 None => ray.clone(),
             };

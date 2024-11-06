@@ -6,7 +6,7 @@ pub use sphere::*;
 
 use cgmath::{InnerSpace, Rotation, Vector3};
 
-use crate::{util::minmax, RTIntersection, Ray};
+use crate::{util::minmax, RTIntersection, Ray, World};
 
 use super::{ObjectTransform, RTObject};
 
@@ -236,6 +236,7 @@ impl<S: SDFObject> RTObject for S {
         &self,
         transform: &super::ObjectTransform,
         ray: &Ray,
+        _: &World
     ) -> Option<RTIntersection> {
         // Check if ray intersects the bounding box in object frame or is inside bbox
         let ray_object_frame = transform.ray_to_object_frame(ray);
@@ -323,6 +324,7 @@ impl<S: SDFObject> RTObject for S {
         &self,
         transform: &super::ObjectTransform,
         line: &Ray,
+        _: &World
     ) -> Option<RTIntersection> {
         // Check if ray intersects the bounding box in object frame or is inside bbox
         let line_object_frame = transform.ray_to_object_frame(&line);

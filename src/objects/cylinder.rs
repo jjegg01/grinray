@@ -2,7 +2,7 @@ use core::f64;
 
 use cgmath::{InnerSpace, Rotation, Vector2, Vector3};
 
-use crate::{RTIntersection, Ray, RAYDIST_EPSILON};
+use crate::{RTIntersection, Ray, World};
 
 use super::{ObjectTransform, RTObject};
 
@@ -139,14 +139,14 @@ impl Cylinder {
 }
 
 impl RTObject for Cylinder {
-    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray, world: &World) -> Option<RTIntersection> {
         // Get intersection candidates
         let candidates = self.get_intersection_candidates(transform, ray)?;
         // Select the closest valid intersection that has a positive ray distance
         let mut intersection_final = None;
         let mut max_dist = f64::INFINITY;
         for candidate in candidates {
-            if candidate.valid && candidate.ray_dist > RAYDIST_EPSILON && candidate.ray_dist.abs() < max_dist {
+            if candidate.valid && candidate.ray_dist > world.ray_distance_epsilon && candidate.ray_dist.abs() < max_dist {
                 max_dist = candidate.ray_dist.abs();
                 intersection_final = Some(candidate);
             }
@@ -156,7 +156,7 @@ impl RTObject for Cylinder {
         Some(Self::cylinder_intersection_to_rt_intersection(intersection_final, transform, ray))
     }
 
-    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray, _: &World) -> Option<RTIntersection> {
         // Get intersection candidates
         let candidates = self.get_intersection_candidates(transform, ray)?;
         // Select the closest valid intersection
@@ -184,12 +184,13 @@ mod test {
     fn test_cylinder_rays_inside() {
         let cylinder = Cylinder::new(2.0, 2.0);
         let transform = ObjectTransform::identity();
+        let world = World::default();
         let ray_mantle = Ray {
             start: (0., 0., 0.).into(),
             dir: Vector3::new(1., 0.25, 1.).normalize(),
             depth: 42,
         };
-        let intersection_mantle = cylinder.intersect_ray(&transform, &ray_mantle).unwrap();
+        let intersection_mantle = cylinder.intersect_ray(&transform, &ray_mantle, &world).unwrap();
         assert!((intersection_mantle.point.x - 2f64.sqrt()).abs() < EPSILON);
         assert!((intersection_mantle.point.z - 2f64.sqrt()).abs() < EPSILON);
         assert!(
@@ -201,7 +202,7 @@ mod test {
             dir: Vector3::new(-1., 2., 1.).normalize(),
             depth: 42,
         };
-        let intersection_top = cylinder.intersect_ray(&transform, &ray_top).unwrap();
+        let intersection_top = cylinder.intersect_ray(&transform, &ray_top, &world).unwrap();
         assert!((intersection_top.point.y - 1.0).abs() < EPSILON);
         assert!(
             (ray_mantle.dir * intersection_mantle.ray_dist).distance(intersection_mantle.point)
@@ -212,7 +213,7 @@ mod test {
             dir: Vector3::new(1., -2., -1.).normalize(),
             depth: 42,
         };
-        let intersection_top = cylinder.intersect_ray(&transform, &ray_bottom).unwrap();
+        let intersection_top = cylinder.intersect_ray(&transform, &ray_bottom, &world).unwrap();
         assert!((intersection_top.point.y + 1.0).abs() < EPSILON);
         assert!(
             (ray_mantle.dir * intersection_mantle.ray_dist).distance(intersection_mantle.point)

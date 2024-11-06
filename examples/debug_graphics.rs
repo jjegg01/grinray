@@ -3,9 +3,7 @@
 
 use cgmath::{Vector3, Zero};
 use grinray::{
-    graphics::RayGraphicsContext,
-    objects::{Cuboid, ObjectTransform, Plane},
-    CheckerboardMaterial, FullTracer, Ray, Scene, LambertMaterial, Tracer,
+    graphics::RayGraphicsContext, objects::{Cuboid, ObjectTransform, Plane}, CheckerboardMaterial, FullTracer, LambertMaterial, Ray, Scene, Tracer, World
 };
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
@@ -30,6 +28,7 @@ fn main() {
     let mut ctx = RayGraphicsContext::new(
         &scene,
         (1.0, 1.0, 1.0).into(),
+        World::default(),
         Xoshiro256Plus::from_seed([
             9, 41, 26, 176, 113, 164, 141, 6, 251, 27, 52, 143, 10, 196, 76, 147, 99, 215, 103,
             223, 78, 137, 249, 101, 252, 6, 139, 184, 69, 177, 191, 211,

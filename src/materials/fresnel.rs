@@ -3,7 +3,7 @@ use rand_distr::Distribution;
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, unwrap_lost_ray, RTIntersection, Ray, TraceEvent, Tracer
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, unwrap_lost_ray, RTIntersection, Ray, TraceEvent, Tracer, World
 };
 
 use super::Material;
@@ -12,9 +12,7 @@ use super::Material;
 #[derive(Clone)]
 pub struct FresnelMaterial {
     /// Index inside the material
-    index: f64,
-    /// Index outside of the material
-    outer_index: f64,
+    index: f64
 }
 
 pub(crate) enum FresnelInteractionType {
@@ -36,8 +34,8 @@ impl FresnelMaterial {
     /// Create a new material implementing the Fresnel equations for light-matter interaction
     ///
     /// You must specify the refractive index of the material itself *and* of the surrounding medium
-    pub fn new(index: f64, outer_index: f64) -> Self {
-        Self { index, outer_index }
+    pub fn new(index: f64) -> Self {
+        Self { index }
     }
 
     pub(crate) fn fresnel_interaction(
@@ -125,6 +123,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
             intersection,
             object,
             transform,
+            &ctx.world,
             &mut ctx.rng,
             tracer,
             trace,
@@ -139,6 +138,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
         transform: &ObjectTransform,
+        world: &World,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
@@ -157,7 +157,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                 tracer.add_point(trace, TraceEvent::End, intersection.point);
                 return None;
             }
-            match Self::fresnel_interaction(self.index, self.outer_index, ray.dir, ray.depth, intersection.point, intersection.normal, rng)
+            match Self::fresnel_interaction(self.index, world.refractive_index, ray.dir, ray.depth, intersection.point, intersection.normal, rng)
             {
                 FresnelInteractionType::Reflection(next_ray) => {
                     tracer.add_point(trace, TraceEvent::Reflection, intersection.point);
@@ -170,7 +170,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                         // physically implausible (e.g., discontinuous surface normals.
                         // Since there is no reliable way to recover from that, we just discard the
                         // ray
-                        intersection = unwrap_lost_ray!(object.intersect_ray(transform, &ray),
+                        intersection = unwrap_lost_ray!(object.intersect_ray(transform, &ray, world),
                             "reflected ray no longer in object");
                     }
                     // Outer reflections don't enter the object at all
@@ -184,7 +184,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
                     if !inside {
                         ray = next_ray;
                         // Again we discard rays that violate the assumption of a closed geometry
-                        intersection = unwrap_lost_ray!(object.intersect_ray(transform, &ray),
+                        intersection = unwrap_lost_ray!(object.intersect_ray(transform, &ray, world),
                             "refracted ray no longer in object");
                         inside = true;
                     }

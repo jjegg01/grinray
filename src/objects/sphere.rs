@@ -1,6 +1,6 @@
 use cgmath::InnerSpace;
 
-use crate::{RTIntersection, Ray, RAYDIST_EPSILON};
+use crate::{RTIntersection, Ray, World};
 
 use super::{ObjectTransform, RTObject};
 
@@ -19,7 +19,7 @@ impl Sphere {
 }
 
 impl RTObject for Sphere {
-    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray, world: &World) -> Option<RTIntersection> {
         // Inserting the parametric description of a ray (start at r_0, direction d)
         // r(s) = r_0 + s * d
         // into the definition of a sphere centered at r_c with radius R
@@ -34,9 +34,9 @@ impl RTObject for Sphere {
             let solution1 = -ad - discriminant.sqrt();
             let solution2 = -ad + discriminant.sqrt();
             // Ignore solutions that are too close to the start of the ray
-            let ray_dist = if solution1 >= RAYDIST_EPSILON {
+            let ray_dist = if solution1 >= world.ray_distance_epsilon {
                 solution1
-            } else if solution2 >= RAYDIST_EPSILON {
+            } else if solution2 >= world.ray_distance_epsilon {
                 solution2
             } else {
                 return None;
@@ -54,7 +54,7 @@ impl RTObject for Sphere {
         }
     }
 
-    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray, _: &World) -> Option<RTIntersection> {
         // Basically the same as intersect_ray but with a different logic on how
         // we select the solution to return
         let center = transform.translation;

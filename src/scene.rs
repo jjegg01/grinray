@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use slotmap::SlotMap;
 
-use crate::{materials::Material, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, Tracer, RAYDIST_MAX};
+use crate::{materials::Material, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, Tracer, World};
 
 #[derive(Hash, PartialEq, Eq, Clone, Copy)]
 pub struct ObjectID(pub(crate) ObjectKey);
@@ -26,11 +26,11 @@ impl<T: Tracer> Scene<T> {
         }
     }
 
-    pub(crate) fn cast_ray(&self, ray: &Ray) -> Option<(ObjectID, RTIntersection)> {
+    pub(crate) fn cast_ray(&self, ray: &Ray, world: &World) -> Option<(ObjectID, RTIntersection)> {
         let mut closest_intersection: Option<(ObjectKey, RTIntersection)> = None;
         for (object_key, (object, object_transform)) in &self.objects {
-            if let Some(intersection) = object.intersect_ray(object_transform, ray) {
-                if intersection.ray_dist > RAYDIST_MAX {
+            if let Some(intersection) = object.intersect_ray(object_transform, ray, world) {
+                if intersection.ray_dist > world.ray_distance_max {
                     continue;
                 }
                 closest_intersection = match closest_intersection {

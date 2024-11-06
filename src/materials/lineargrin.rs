@@ -4,7 +4,7 @@ use cgmath::{InnerSpace, MetricSpace, Quaternion, Rotation, Rotation3, Vector2, 
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, unwrap_lost_ray, FresnelInteractionType, FresnelMaterial, RTIntersection, Ray, TraceEvent, Tracer
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, unwrap_lost_ray, FresnelInteractionType, FresnelMaterial, RTIntersection, Ray, TraceEvent, Tracer, World
 };
 
 use super::Material;
@@ -18,7 +18,6 @@ pub struct LinearGRINFresnelMaterial {
     gradient_strength: f64,
     /// Direction of the gradient as a unit vector
     gradient_dir: Vector3<f64>,
-    outer_index: f64
 }
 
 // Lower limit for the ray direction component perpendicular to the material gradient.
@@ -52,14 +51,13 @@ impl LinearGRINFresnelMaterial {
     /// Requires the refractive index at the reference point of the geometric object you assign this
     /// material to, the gradient of the refractive index (i.e., direction and strength of the
     /// spatial variation) and the refractive index of the surrounding medium.
-    pub fn new(reference_index: f64, gradient: Vector3<f64>, outer_index: f64) -> Self {
+    pub fn new(reference_index: f64, gradient: Vector3<f64>) -> Self {
         let gradient_dir = gradient.normalize();
         let gradient_strength = gradient.magnitude();
         Self {
             origin_index: reference_index,
             gradient_strength,
-            gradient_dir,
-            outer_index
+            gradient_dir
         }
     }
 
@@ -141,6 +139,7 @@ impl LinearGRINFresnelMaterial {
         object: &(dyn RTObject + Send + Sync),
         transform: &ObjectTransform,
         gradient_reference_rotation: Quaternion<f64>,
+        world: &World,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
@@ -172,9 +171,9 @@ impl LinearGRINFresnelMaterial {
             // move along the trajectory of the ray so we test first for an
             // intersection going forward. If that does not succeed, we also allow
             // going backwards (and ignore the minimum step length).
-            let trial_intersection = match object.intersect_ray(transform, &trial_ray) {
+            let trial_intersection = match object.intersect_ray(transform, &trial_ray, &world) {
                 Some(trial_intersection) => trial_intersection,
-                None => unwrap_lost_ray!(object.intersect_line(transform, &trial_ray),
+                None => unwrap_lost_ray!(object.intersect_line(transform, &trial_ray, &world),
                     "cannot find way back to object during GRIN tracing"),
             };
             // Move along trajectory by the length of the cast ray, but not too far
@@ -233,7 +232,7 @@ impl LinearGRINFresnelMaterial {
         let exit_index = self.index_at_point(&exit_intersection.point, &transform.translation);
         match FresnelMaterial::fresnel_interaction(
             exit_index,
-            self.outer_index,
+            world.refractive_index,
             exit_tau,
             ray.depth,
             exit_intersection.point,
@@ -243,7 +242,7 @@ impl LinearGRINFresnelMaterial {
             FresnelInteractionType::Reflection(reflected_ray) => {
                 // On reflection at the inner surface we stay inside the material
                 tracer.add_point(trace, TraceEvent::Reflection, reflected_ray.start);
-                self.inner_trace(reflected_ray, object, transform, gradient_reference_rotation, rng, tracer, trace)
+                self.inner_trace(reflected_ray, object, transform, gradient_reference_rotation, world, rng, tracer, trace)
             }
             FresnelInteractionType::Refraction(exit_ray) => {
                 // Ray exiting the object
@@ -275,6 +274,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
             intersection,
             object,
             transform,
+            &ctx.world,
             &mut ctx.rng,
             tracer,
             trace,
@@ -289,6 +289,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
         intersection: &RTIntersection,
         object: &(dyn RTObject + Send + Sync),
         transform: &ObjectTransform,
+        world: &World,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
@@ -298,7 +299,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
         // Calculate rotation that aligns the gradient direction with the y-axis
         let gradient_reference_rotation = Self::calc_reference_rotation(self.gradient_dir, transform);
         // Calculate Fresnel interaction at the entry point
-        match FresnelMaterial::fresnel_interaction(index, self.outer_index, ray.dir, ray.depth, intersection.point, intersection.normal, rng)
+        match FresnelMaterial::fresnel_interaction(index, world.refractive_index, ray.dir, ray.depth, intersection.point, intersection.normal, rng)
         {
             FresnelInteractionType::Reflection(next_ray) => {
                 // Reflection is easy as the ray does not enter the material
@@ -308,7 +309,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
             FresnelInteractionType::Refraction(inner_ray) => {
                 // Refractions takes us into the material
                 tracer.add_point(trace, TraceEvent::Refraction, inner_ray.start);
-                self.inner_trace(inner_ray, object, transform, gradient_reference_rotation, rng, tracer, trace)
+                self.inner_trace(inner_ray, object, transform, gradient_reference_rotation, world, rng, tracer, trace)
             }
         }
     }

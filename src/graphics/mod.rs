@@ -19,7 +19,7 @@ impl Ray {
         if self.depth == 0 {
             Vector3::zero()
         } else {
-            match ctx.scene.cast_ray(self) {
+            match ctx.scene.cast_ray(self, &ctx.world) {
                 Some((obj_id, intersection)) => {
                     let material = ctx.scene.get_object_material(obj_id);
                     let (obj, transform) = ctx.scene.get_object(obj_id.0).unwrap();

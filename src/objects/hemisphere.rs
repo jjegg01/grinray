@@ -2,7 +2,7 @@ use core::f64;
 
 use cgmath::{InnerSpace, Rotation, Vector3, Zero};
 
-use crate::{RTIntersection, Ray, RAYDIST_EPSILON};
+use crate::{RTIntersection, Ray, World};
 
 use super::{ObjectTransform, RTObject};
 
@@ -79,13 +79,13 @@ impl Hemisphere {
 }
 
 impl RTObject for Hemisphere {
-    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+    fn intersect_ray(&self, transform: &ObjectTransform, ray: &Ray, world: &World) -> Option<RTIntersection> {
         // Get candidates for intersection and select the closest one in the forward direction
         let candidates = self.get_intersection_candidates(transform, ray)?;
         let mut ray_dist = f64::INFINITY;
         let mut normal_object_frame = Vector3::zero();
         for candidate in candidates {
-            if candidate.valid && candidate.ray_dist >= RAYDIST_EPSILON && candidate.ray_dist < ray_dist {
+            if candidate.valid && candidate.ray_dist >= world.ray_distance_epsilon && candidate.ray_dist < ray_dist {
                 ray_dist = candidate.ray_dist;
                 normal_object_frame = candidate.normal_object_frame;
             }
@@ -104,7 +104,7 @@ impl RTObject for Hemisphere {
         })
     }
 
-    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray) -> Option<RTIntersection> {
+    fn intersect_line(&self, transform: &ObjectTransform, ray: &Ray, _: &World) -> Option<RTIntersection> {
         // Get candidates for intersection and select the closest one
         let candidates = self.get_intersection_candidates(transform, ray)?;
         let mut ray_dist = f64::INFINITY;

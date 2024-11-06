@@ -1,7 +1,7 @@
 //! Example for using GRINRAY to calculate optical forces
 
 use cgmath::{InnerSpace, Quaternion, Rad, Rotation3, Vector3, Zero};
-use grinray::{objects::{ObjectTransform, RTObject, Sphere}, LinearGRINFresnelMaterial, Material, Ray};
+use grinray::{objects::{ObjectTransform, RTObject, Sphere}, LinearGRINFresnelMaterial, Material, Ray, World};
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
 
@@ -18,7 +18,11 @@ fn main() {
     const MEAN_INDEX: f64 = 1.52; // Typical polymer materials for refractive microparticles
     const GRADIENT_STRENGTH: f64 = 0.1;
     const MEDIUM_INDEX: f64 = 1.33; // Water
-    let material = LinearGRINFresnelMaterial::new(MEAN_INDEX, (0.0, GRADIENT_STRENGTH / SPHERE_RADIUS, 0.0).into(), MEDIUM_INDEX);
+    let material = LinearGRINFresnelMaterial::new(MEAN_INDEX, (0.0, GRADIENT_STRENGTH / SPHERE_RADIUS, 0.0).into());
+    let world = World {
+        refractive_index: MEDIUM_INDEX,
+        ..Default::default()
+    };
 
     // Number of samples we take for every ray and maximum raytracing depth
     // (higher number => higher precision, but longer calculation)
@@ -61,7 +65,7 @@ fn main() {
                 depth: MAX_RAY_DEPTH,
             };
             // Only trace rays that actually intersect the particle
-            if let Some(intersection) = particle.intersect_ray(&particle_transform, &ray) {
+            if let Some(intersection) = particle.intersect_ray(&particle_transform, &ray, &world) {
                 let mut successful_samples: usize = 0;
                 // Accumulation buffers for force and torque caused by current ray
                 let mut sample_force = Vector3::zero();
@@ -70,7 +74,7 @@ fn main() {
                 let incoming_momentum = ray.dir.normalize();
                 let incoming_angular_momentum = (intersection.point - particle_transform.get_translation()).cross(incoming_momentum);
                 for _ in 0..SAMPLES_PER_RAY {
-                    if let Some(outgoing_ray) = material.next_ray(&ray, &intersection, &particle, &particle_transform, &mut rng, &mut (), ()) {
+                    if let Some(outgoing_ray) = material.next_ray(&ray, &intersection, &particle, &particle_transform, &world, &mut rng, &mut (), ()) {
                         // Calculate outgoing momentum and torque
                         let outgoing_momentum = outgoing_ray.dir.normalize();
                         let outgoing_angular_momentum = (outgoing_ray.start - particle_transform.get_translation()).cross(outgoing_momentum);

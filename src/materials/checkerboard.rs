@@ -2,7 +2,7 @@ use cgmath::{ElementWise, InnerSpace, Rotation, Vector3, Zero};
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, TraceEvent, Tracer,
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, TraceEvent, Tracer, World
 };
 
 use super::Material;
@@ -48,6 +48,7 @@ impl<T: Tracer> Material<T> for CheckerboardMaterial {
             intersection,
             object,
             transform,
+            &ctx.world,
             &mut ctx.rng,
             tracer,
             trace,
@@ -66,6 +67,7 @@ impl<T: Tracer> Material<T> for CheckerboardMaterial {
         intersection: &RTIntersection,
         _: &(dyn RTObject + Send + Sync),
         transform: &ObjectTransform,
+        _: &World,
         rng: &mut Xoshiro256Plus,
         tracer: &mut T,
         trace: T::TraceID,
