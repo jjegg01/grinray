@@ -11,18 +11,18 @@ fn main() {
     // Setup objects and their transformations
     let plane = Plane::new();
     let plane_transform = ObjectTransform::with_translation((0.0, -1.001, 0.0).into());
-    let sphere = Sphere::new(1.0);
-    let sphere_transform = ObjectTransform::with_translation((0.0, 0.0, -2.0).into());
+    let particle = Sphere::new(1.0);
+    let particle_transform = ObjectTransform::with_translation((0.0, 0.0, -2.0).into());
     // Setup materials
-    let checkerboard_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
-    let object_mat = LinearGRINFresnelMaterial::new(1.4, (0.0,0.1,0.0).into(), 1.0);
+    let plane_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
+    let particle_mat = LinearGRINFresnelMaterial::new(1.4, (0.0,0.1,0.0).into(), 1.0);
     // Setup scene
     let mut tracer = DebuggerTracer::new();
     let mut scene: Scene<DebuggerTracer> = Scene::new();
-    let checkerboard_mat = scene.add_material(Box::new(checkerboard_mat));
-    let lambert_mat = scene.add_material(Box::new(object_mat));
-    scene.add_object(Box::new(plane), plane_transform, checkerboard_mat);
-    scene.add_object(Box::new(sphere), sphere_transform, lambert_mat);
+    let plane_mat = scene.add_material(Box::new(plane_mat));
+    let particle_mat = scene.add_material(Box::new(particle_mat));
+    scene.add_object(Box::new(plane), plane_transform, plane_mat);
+    scene.add_object(Box::new(particle), particle_transform, particle_mat);
     // Create camera
     let camera = PerspectiveCamera::new(PerspectiveCameraParameters {
         pixels: (1024,1024),

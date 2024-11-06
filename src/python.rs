@@ -115,7 +115,7 @@ impl PyScene {
     }
 
     fn add_material(&mut self, py: Python, mat: PyObject) -> Result<MaterialID, PyErr> {
-        if let Ok(mat) = mat.downcast_bound::<PySimpleMaterial>(py) {
+        if let Ok(mat) = mat.downcast_bound::<PyLambertMaterial>(py) {
             Ok(self
                 .scene
                 .add_material(Box::new(mat.borrow().inner.clone())))
@@ -277,17 +277,17 @@ impl PyHemisphere {
 }
 
 #[pyclass]
-#[pyo3(name = "SimpleMaterial")]
-struct PySimpleMaterial {
-    inner: SimpleMaterial,
+#[pyo3(name = "LambertMaterial")]
+struct PyLambertMaterial {
+    inner: LambertMaterial,
 }
 
 #[pymethods]
-impl PySimpleMaterial {
+impl PyLambertMaterial {
     #[new]
     fn new(color: (f32, f32, f32)) -> Self {
         Self {
-            inner: SimpleMaterial::new(color.into()),
+            inner: LambertMaterial::new(color.into()),
         }
     }
 }
@@ -352,7 +352,7 @@ fn grinray(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyCuboid>()?;
     m.add_class::<PyCylinder>()?;
     m.add_class::<PyHemisphere>()?;
-    m.add_class::<PySimpleMaterial>()?;
+    m.add_class::<PyLambertMaterial>()?;
     m.add_class::<PyCheckerboardMaterial>()?;
     m.add_class::<PyFresnelMaterial>()?;
     m.add_class::<PyLinearGRINFresnelMaterial>()?;

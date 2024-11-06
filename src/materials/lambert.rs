@@ -26,22 +26,23 @@ pub(crate) fn lambert_next_ray(
     })
 }
 
-/// Simple material that is a perfect Lambertian diffusor
+/// Material that implements a perfect Lambertian diffusor (i.e., a material that scatters incoming
+/// rays according to Lambert's law)
 #[derive(Clone)]
-pub struct SimpleMaterial {
+pub struct LambertMaterial {
     /// Color tint of the material (multiplicative)
     color: Vector3<f32>,
 }
 
-impl SimpleMaterial {
-    /// Create a new simple material with a solid color (color is multiplied with ray color during
+impl LambertMaterial {
+    /// Create a new Lambertian material with a solid color (color is multiplied with ray color during
     /// raytracing)
     pub fn new(color: Vector3<f32>) -> Self {
         Self { color }
     }
 }
 
-impl<T: Tracer> Material<T> for SimpleMaterial {
+impl<T: Tracer> Material<T> for LambertMaterial {
     fn interact(
         &self,
         ray: &Ray,
@@ -52,7 +53,7 @@ impl<T: Tracer> Material<T> for SimpleMaterial {
         tracer: &mut T,
         trace: T::TraceID,
     ) -> Vector3<f32> {
-        let next_ray = <SimpleMaterial as Material<T>>::next_ray(
+        let next_ray = <LambertMaterial as Material<T>>::next_ray(
             self,
             ray,
             intersection,
