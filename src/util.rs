@@ -1,3 +1,11 @@
+/// Take two values and return them as a sorted tuple
+/// 
+/// Note: We only use `PartialEq` here. For f64 in particular, this implies an
+/// unstable sort order if one of the keys is NaN.
+pub(crate) fn minmax<K:PartialOrd>(a: K, b: K) -> (K,K) {
+    if a < b { (a,b) } else { (b,a) }
+}
+
 /// Take two key value pairs and return them sorted by their key
 /// 
 /// Note: We only use `PartialEq` here. For f64 in particular, this implies an

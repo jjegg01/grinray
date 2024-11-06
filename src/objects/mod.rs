@@ -2,6 +2,7 @@ mod cuboid;
 mod cylinder;
 mod hemisphere;
 mod plane;
+pub mod sdf;
 mod sphere;
 
 pub use cuboid::*;

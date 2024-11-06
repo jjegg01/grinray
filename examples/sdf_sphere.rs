@@ -2,7 +2,7 @@
 
 use cgmath::Vector3;
 use grinray::{
-    graphics::{Camera, PerspectiveCamera, PerspectiveCameraParameters, RayGraphicsContext}, objects::{ObjectTransform, Plane, Sphere}, CheckerboardMaterial, DebuggerTracer, LinearGRINFresnelMaterial, Scene, Tracer
+    graphics::{Camera, PerspectiveCamera, PerspectiveCameraParameters, RayGraphicsContext}, objects::{sdf, ObjectTransform, Plane}, CheckerboardMaterial, DebuggerTracer, LinearGRINFresnelMaterial, Scene, Tracer
 };
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256Plus;
@@ -11,7 +11,7 @@ fn main() {
     // Setup objects and their transformations
     let plane = Plane::new();
     let plane_transform = ObjectTransform::with_translation((0.0, -1.001, 0.0).into());
-    let sphere = Sphere::new(1.0);
+    let sphere = sdf::Sphere::new(1.0);
     let sphere_transform = ObjectTransform::with_translation((0.0, 0.0, -2.0).into());
     // Setup materials
     let checkerboard_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
@@ -45,5 +45,5 @@ fn main() {
     let mut img = image::RgbaImage::from_vec(1024, 1024, bytemuck::cast_slice(buf.as_slice()).to_vec())
         .unwrap();
     image::imageops::flip_vertical_in_place(&mut img);
-    img.save("sphere.png").expect("Failed to save image");
+    img.save("sdf_sphere.png").expect("Failed to save image");
 }
