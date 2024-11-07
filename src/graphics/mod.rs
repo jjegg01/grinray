@@ -5,7 +5,7 @@ mod util;
 pub use camera::*;
 pub use context::RayGraphicsContext;
 
-use crate::{Ray, Tracer};
+use crate::{report_depth_exhausted, Ray, Tracer};
 use cgmath::{Vector3, Zero};
 
 impl Ray {
@@ -17,7 +17,7 @@ impl Ray {
     ) -> Vector3<f32> {
         // Discard rays that have exhausted the depth limit
         if self.depth == 0 {
-            Vector3::zero()
+            report_depth_exhausted!(Vector3::zero(), "defaulting ray color to black")
         } else {
             match ctx.scene.cast_ray(self, &ctx.world) {
                 Some((obj_id, intersection)) => {

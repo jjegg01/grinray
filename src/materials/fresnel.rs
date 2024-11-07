@@ -3,7 +3,7 @@ use rand_distr::Distribution;
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, unwrap_lost_ray, RTIntersection, Ray, TraceEvent, Tracer, World
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, report_depth_exhausted, unwrap_lost_ray, RTIntersection, Ray, TraceEvent, Tracer, World
 };
 
 use super::Material;
@@ -155,7 +155,7 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
             // Abort recursion if ray depth is exhausted
             if ray.depth == 0 {
                 tracer.add_point(trace, TraceEvent::End, intersection.point);
-                return None;
+                report_depth_exhausted!(return None, "defaulting Fresnel next ray to None")
             }
             match Self::fresnel_interaction(self.index, world.refractive_index, ray.dir, ray.depth, intersection.point, intersection.normal, rng)
             {

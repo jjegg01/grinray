@@ -3,7 +3,7 @@ use rand_distr::Distribution;
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, RTIntersection, Ray, TraceEvent, Tracer, World
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, report_depth_exhausted, RTIntersection, Ray, TraceEvent, Tracer, World
 };
 
 use super::Material;
@@ -15,7 +15,7 @@ pub(crate) fn lambert_next_ray(
     rng: &mut Xoshiro256Plus,
 ) -> Option<Ray> {
     if initial_depth == 0 {
-        return None;
+        report_depth_exhausted!(return None, "defaulting Lambert next ray to None")
     }
     let distr = rand_distr::Normal::new(0.0, 1.0).unwrap();
     let unit_random = Vector3::new(distr.sample(rng), distr.sample(rng), distr.sample(rng)).normalize();

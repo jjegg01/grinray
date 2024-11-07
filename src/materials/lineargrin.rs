@@ -4,7 +4,7 @@ use cgmath::{InnerSpace, MetricSpace, Quaternion, Rotation, Rotation3, Vector2, 
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, unwrap_lost_ray, FresnelInteractionType, FresnelMaterial, RTIntersection, Ray, TraceEvent, Tracer, World
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, report_depth_exhausted, unwrap_lost_ray, FresnelInteractionType, FresnelMaterial, RTIntersection, Ray, TraceEvent, Tracer, World
 };
 
 use super::Material;
@@ -146,7 +146,7 @@ impl LinearGRINFresnelMaterial {
     ) -> Option<Ray> {
         // Abort if ray has exhausted its depth counter
         if ray.depth == 0 {
-            return None;
+            report_depth_exhausted!(return None, "defaulting linear GRIN next ray to None")
         }
         // Calculate rotation such that the ray direction is in the xy-plane
         // (after rotating such that the gradient is parallel to the y-axis)

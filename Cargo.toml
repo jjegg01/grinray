@@ -28,3 +28,4 @@ image = { version = "0.25.2", default-features = false, features = ["png"]}
 
 [features]
 report-lost-rays = []
+report-depth-exhausted = []
