@@ -1,0 +1,13 @@
+[package]
+name = "render_particle"
+version = "0.2.0-alpha"
+edition = "2021"
+
+[dependencies]
+grinray = { path = "../.." }
+cgmath = "0.18.0"
+rand = "0.8.5"
+rand_xoshiro = "0.6.0"
+image = { version = "0.25.2", default-features = false, features = ["png"]}
+clap = { version = "4.5.20", features = ["derive"] }
+bytemuck = "1.19.0"
