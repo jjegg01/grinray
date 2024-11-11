@@ -1,7 +1,13 @@
 //! Objects defined by a signed distance function
 
+mod capsule;
+mod cuboid;
+mod cylinder;
 mod sphere;
 
+pub use capsule::*;
+pub use cuboid::*;
+pub use cylinder::*;
 pub use sphere::*;
 
 use cgmath::{InnerSpace, Rotation, Vector3};

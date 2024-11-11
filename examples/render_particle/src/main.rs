@@ -45,6 +45,9 @@ enum ParticleShape {
     Cylinder,
     Hemisphere,
     SDFSphere,
+    SDFCube,
+    SDFCylinder,
+    SDFCapsule
 }
 
 #[derive(ValueEnum, Clone)]
@@ -76,17 +79,21 @@ fn main() {
         ParticleShape::Cylinder => Box::new(Cylinder::new(1.0, 2.0)),
         ParticleShape::Hemisphere => Box::new(Hemisphere::new(1.0)),
         ParticleShape::SDFSphere => Box::new(sdf::Sphere::new(1.0)),
+        ParticleShape::SDFCube => Box::new(sdf::Cuboid::new(2.0, 2.0, 2.0)),
+        ParticleShape::SDFCylinder => Box::new(sdf::Cylinder::new(1.0, 2.0)),
+        ParticleShape::SDFCapsule => Box::new(sdf::Capsule::new(1.0, 1.0)),
     };
     let particle_transform = match args.shape {
         ParticleShape::Sphere | ParticleShape::SDFSphere => {
             ObjectTransform::with_translation((0.0, 0.0, -2.0).into())
         }
-        ParticleShape::Cube => ObjectTransform::with_translation((0.0, 0.1, -3.0).into()),
-        ParticleShape::Cylinder => ObjectTransform::with_translation((0.0, 0.1, -3.).into()),
+        ParticleShape::Cube | ParticleShape::SDFCube => ObjectTransform::with_translation((0.0, 0.1, -3.0).into()),
+        ParticleShape::Cylinder | ParticleShape::SDFCylinder => ObjectTransform::with_translation((0.0, 0.1, -3.).into()),
         ParticleShape::Hemisphere => ObjectTransform::new(
             Quaternion::from_axis_angle(Vector3::new(1., 0., -1.).normalize(), Deg(-135.)),
             (0.0, 0.0, -2.0).into(),
         ),
+        ParticleShape::SDFCapsule => ObjectTransform::new(Quaternion::from_angle_z(Deg(-45.)), (0.0, 0.6, -3.).into())//ObjectTransform::with_translation((0.0, 0.6, -3.).into())
     };
     // Setup materials
     let plane_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
