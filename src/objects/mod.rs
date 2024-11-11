@@ -91,4 +91,8 @@ impl ObjectTransform {
             depth: ray.depth,
         }
     }
+
+    pub(crate) fn point_to_world_frame(&self, point: &Vector3<f64>) -> Vector3<f64> {
+        self.rotation.rotate_vector(*point) + self.translation
+    }
 }

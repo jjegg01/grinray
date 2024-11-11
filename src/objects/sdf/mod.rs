@@ -221,9 +221,7 @@ fn march_inside<S: SDFObject>(
 fn intersection_sdf<S: SDFObject>(obj: &S, ray_dist: &f64, point_obj_frame: &Vector3<f64>, transform: &ObjectTransform) -> RTIntersection {
     let gradient_object_frame = obj.sdf_grad(point_obj_frame).normalize();
     let normal = transform.rotation.rotate_vector(gradient_object_frame);
-    let intersection_point = transform
-        .rotation
-        .rotate_vector(point_obj_frame + transform.translation);
+    let intersection_point = transform.point_to_world_frame(point_obj_frame);
     RTIntersection {
         ray_dist: *ray_dist,
         point: intersection_point,
