@@ -6,12 +6,10 @@ use crate::{RTIntersection, Ray, World};
 
 use super::{ObjectTransform, RTObject};
 
-/// A capsule (also called a spherocylinder) with a given radius and length. The
-/// length in measured from center to center of the hemisphere caps, i.e., the
-/// actual bounding box is larger by twice the radius.
+/// A cylinder with a given radius and length.
 ///
 /// Without any transformation this object is centered about the origin and the
-/// capsule extends in the Y-direction.
+/// cylinder extends in the Y-direction.
 #[derive(Clone)]
 pub struct Cylinder {
     pub radius: f64,

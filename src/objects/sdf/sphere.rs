@@ -4,6 +4,7 @@ use cgmath::{MetricSpace, Vector3, Zero};
 
 use super::{AABox, SDFObject, SURFACE_EPSILON};
 
+/// A sphere with a given radius
 pub struct Sphere {
     pub radius: f64,
 }
