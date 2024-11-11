@@ -4,7 +4,7 @@ version = "0.2.0-alpha"
 edition = "2021"
 
 [dependencies]
-grinray = { path = "../.." }
+grinray = { path = "../..", features = ["report-lost-rays"]}
 cgmath = "0.18.0"
 rand = "0.8.5"
 rand_xoshiro = "0.6.0"
