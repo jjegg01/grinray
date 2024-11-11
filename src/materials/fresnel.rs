@@ -3,7 +3,7 @@ use rand_distr::Distribution;
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, report_depth_exhausted, unwrap_lost_ray, RTIntersection, Ray, TraceEvent, Tracer, World
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, report_depth_exhausted, report_lost_ray, unwrap_lost_ray, RTIntersection, Ray, TraceEvent, Tracer, World
 };
 
 use super::Material;
@@ -113,10 +113,6 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
         tracer: &mut T,
         trace: T::TraceID,
     ) -> Vector3<f32> {
-        // TODO: handle rays originating WITHIN the object
-        if ray.dir.dot(intersection.normal) > 0. {
-            unimplemented!("Ray may not start inside a Fresnel material (yet)")
-        }
         <FresnelMaterial as Material<T>>::next_ray(
             self,
             ray,
@@ -143,6 +139,13 @@ impl<T: Tracer> Material<T> for FresnelMaterial {
         tracer: &mut T,
         trace: T::TraceID,
     ) -> Option<Ray> {
+        // For now, rays originating WITHIN the object are an error and will be discarded
+        // This situation can sometimes arise at sharp corners (e.g., the corners of a cube)
+        if ray.dir.dot(intersection.normal) > 0. {
+            report_lost_ray!(return None,
+                "Discarding ray that appears to start inside the Fresnel material"
+            )
+        }
         // Keep track of the current ray
         let mut ray = ray.clone();
         let mut intersection = intersection.clone();

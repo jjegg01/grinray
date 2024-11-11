@@ -4,7 +4,7 @@ use cgmath::{InnerSpace, MetricSpace, Quaternion, Rotation, Rotation3, Vector2, 
 use rand_xoshiro::Xoshiro256Plus;
 
 use crate::{
-    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, report_depth_exhausted, unwrap_lost_ray, FresnelInteractionType, FresnelMaterial, RTIntersection, Ray, TraceEvent, Tracer, World
+    graphics::RayGraphicsContext, objects::{ObjectTransform, RTObject}, report_depth_exhausted, report_lost_ray, unwrap_lost_ray, FresnelInteractionType, FresnelMaterial, RTIntersection, Ray, TraceEvent, Tracer, World
 };
 
 use super::Material;
@@ -264,10 +264,6 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
         tracer: &mut T,
         trace: T::TraceID,
     ) -> Vector3<f32> {
-        // TODO: handle rays originating WITHIN the object (weird)
-        if ray.dir.dot(intersection.normal) > 0. {
-            unimplemented!("Ray may not start inside a GRIN material (yet)")
-        }
         <LinearGRINFresnelMaterial as Material<T>>::next_ray(
             self,
             ray,
@@ -294,6 +290,13 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
         tracer: &mut T,
         trace: T::TraceID,
     ) -> Option<Ray> {
+        // For now, rays originating WITHIN the object are an error and will be discarded
+        // This situation can sometimes arise at sharp corners (e.g., the corners of a cube)
+        if ray.dir.dot(intersection.normal) > 0. {
+            report_lost_ray!(return None,
+                "Discarding ray that appears to start inside the Fresnel material"
+            )
+        }
         // Calculate refractive index at the intersection point
         let index = self.index_at_point(&intersection.point, &transform.translation);
         // Calculate rotation that aligns the gradient direction with the y-axis

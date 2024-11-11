@@ -52,6 +52,20 @@ macro_rules! unwrap_lost_ray {
 
 #[macro_export]
 /// Macro for reporting lost rays, if the corresponding feature is enabled
+macro_rules! report_lost_ray {
+    ($s: stmt, $msg: literal) => {
+        if cfg!(feature = "report-lost-rays") {
+            eprintln!("LOST RAY: {}", $msg);
+            $s
+        }
+        else {
+            $s
+        }
+    };
+}
+
+#[macro_export]
+/// Macro for reporting lost rays, if the corresponding feature is enabled
 /// (otherwise does the same as the ? operator)
 macro_rules! report_depth_exhausted {
     ($s: stmt, $msg: literal) => {
