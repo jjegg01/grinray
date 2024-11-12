@@ -40,13 +40,15 @@ impl SDFObject for Cuboid {
     }
 
     fn bounding_box(&self) -> super::AABox {
+        // Since the cube touches the bounding box, we increase the surface epsilon a bit to
+        // prevent clipping artifacts
         AABox {
-            xlo: -self.length_x - SURFACE_EPSILON,
-            xhi: self.length_x + SURFACE_EPSILON,
-            ylo: -self.length_y - SURFACE_EPSILON,
-            yhi: self.length_y + SURFACE_EPSILON,
-            zlo: -self.length_z - SURFACE_EPSILON,
-            zhi: self.length_z + SURFACE_EPSILON,
+            xlo: -self.length_x / 2. - SURFACE_EPSILON * 1.1,
+            xhi: self.length_x / 2. + SURFACE_EPSILON * 1.1,
+            ylo: -self.length_y / 2. - SURFACE_EPSILON * 1.1,
+            yhi: self.length_y / 2. + SURFACE_EPSILON * 1.1,
+            zlo: -self.length_z / 2. - SURFACE_EPSILON * 1.1,
+            zhi: self.length_z / 2. + SURFACE_EPSILON * 1.1,
         }
     }
 }
