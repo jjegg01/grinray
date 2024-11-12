@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::ExitCode};
 
 use cgmath::{Deg, InnerSpace, Quaternion, Rotation3, Vector3, Zero};
 use clap::{Parser, ValueEnum};
@@ -31,6 +31,9 @@ struct Args {
     /// at the reference point of the particle geometry)
     #[clap(long, default_value = "1.4")]
     base_index: f64,
+    /// Rounding radius to apply to the edges of the geometry (note: ignored for non-SDF geometries)
+    #[clap(long, default_value = "0")]
+    rounding: f64,
     /// Camera projection to use
     #[clap(long, default_value = "perspective")]
     projection: Projection,
@@ -62,13 +65,28 @@ enum Projection {
     Perspective,
 }
 
-fn main() {
+fn main() -> ExitCode {
     // Validate args
     let args = Args::parse();
     if let ParticleMaterial::Opaque = args.material {
         if args.grin_strength != 0. {
-            println!("WARNING: setting grin-strength for an opaque particle has no effect")
+            eprintln!("WARNING: setting grin-strength for an opaque particle has no effect")
         }
+    }
+    if args.rounding < 0. {
+        eprintln!("ERROR: negative rounding radii are invalid");
+        return ExitCode::FAILURE;
+    }
+    // Macro for applying rounding operation to SDF geometries
+    macro_rules! apply_rounding {
+        ($inner: expr) => {
+            if args.rounding > 0. {
+                Box::new(sdf::Rounding::new_autoscale($inner, args.rounding))
+            }
+            else {
+                Box::new($inner)
+            }
+        };
     }
     // Setup objects and their transformations
     let plane = Plane::new();
@@ -78,10 +96,10 @@ fn main() {
         ParticleShape::Cube => Box::new(Cuboid::new(2.0, 2.0, 2.0)),
         ParticleShape::Cylinder => Box::new(Cylinder::new(1.0, 2.0)),
         ParticleShape::Hemisphere => Box::new(Hemisphere::new(1.0)),
-        ParticleShape::SDFSphere => Box::new(sdf::Sphere::new(1.0)),
-        ParticleShape::SDFCube => Box::new(sdf::Cuboid::new(2.0, 2.0, 2.0)),
-        ParticleShape::SDFCylinder => Box::new(sdf::Cylinder::new(1.0, 2.0)),
-        ParticleShape::SDFCapsule => Box::new(sdf::Capsule::new(1.0, 1.0)),
+        ParticleShape::SDFSphere => apply_rounding!(sdf::Sphere::new(1.0)),
+        ParticleShape::SDFCube => apply_rounding!(sdf::Cuboid::new(2.0, 2.0, 2.0)),
+        ParticleShape::SDFCylinder => apply_rounding!(sdf::Cylinder::new(1.0, 2.0)),
+        ParticleShape::SDFCapsule => apply_rounding!(sdf::Capsule::new(1.0, 1.0)),
     };
     let particle_transform = match args.shape {
         ParticleShape::Sphere | ParticleShape::SDFSphere => {
@@ -151,4 +169,5 @@ fn main() {
     let mut img = image::RgbaImage::from_vec(1024, 1024, cast_slice.to_vec()).unwrap();
     image::imageops::flip_vertical_in_place(&mut img);
     img.save(args.output_image).expect("Failed to save image");
+    ExitCode::SUCCESS
 }

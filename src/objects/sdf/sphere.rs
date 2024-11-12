@@ -2,7 +2,7 @@
 
 use cgmath::{MetricSpace, Vector3, Zero};
 
-use super::{AABox, SDFObject, SURFACE_EPSILON};
+use super::{AABox, RescaleAbsoluteUniform, SDFObject, SURFACE_EPSILON};
 
 /// A sphere with a given radius
 pub struct Sphere {
@@ -29,5 +29,11 @@ impl SDFObject for Sphere {
             zlo: -self.radius - SURFACE_EPSILON,
             zhi: self.radius + SURFACE_EPSILON,
         }
+    }
+}
+
+impl RescaleAbsoluteUniform for Sphere {
+    fn rescale_absolute(&mut self, size_change: f64) {
+        self.radius += size_change / 2.;
     }
 }

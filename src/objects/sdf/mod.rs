@@ -3,11 +3,13 @@
 mod capsule;
 mod cuboid;
 mod cylinder;
+mod round;
 mod sphere;
 
 pub use capsule::*;
 pub use cuboid::*;
 pub use cylinder::*;
+pub use round::*;
 pub use sphere::*;
 
 use cgmath::{InnerSpace, Rotation, Vector3};
@@ -19,6 +21,7 @@ use super::{ObjectTransform, RTObject};
 // Distance at which we consider an SDF object to be hit
 const SURFACE_EPSILON: f64 = 1e-4;
 
+#[derive(Clone)]
 pub struct AABox {
     pub xlo: f64,
     pub xhi: f64,

@@ -2,7 +2,7 @@ use core::f64;
 
 use cgmath::Vector3;
 
-use super::{AABox, SDFObject, SURFACE_EPSILON};
+use super::{AABox, RescaleAbsoluteUniform, SDFObject, SURFACE_EPSILON};
 
 /// A capsule (also called a spherocylinder) with a given radius and length. The
 /// length in measured from center to center of the hemisphere caps, i.e., the
@@ -47,5 +47,11 @@ impl SDFObject for Capsule {
             zlo: -self.radius - SURFACE_EPSILON,
             zhi: self.radius + SURFACE_EPSILON,
         }
+    }
+}
+
+impl RescaleAbsoluteUniform for Capsule {
+    fn rescale_absolute(&mut self, size_change: f64) {
+        self.radius += size_change / 2.;
     }
 }

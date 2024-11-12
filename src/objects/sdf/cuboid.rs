@@ -2,7 +2,7 @@
 
 use cgmath::{MetricSpace, Vector3, Zero};
 
-use super::{AABox, SDFObject, SURFACE_EPSILON};
+use super::{AABox, RescaleAbsoluteUniform, SDFObject, SURFACE_EPSILON};
 
 /// Rectangular cuboid with given dimensions
 ///
@@ -50,5 +50,13 @@ impl SDFObject for Cuboid {
             zlo: -self.length_z / 2. - SURFACE_EPSILON * 1.1,
             zhi: self.length_z / 2. + SURFACE_EPSILON * 1.1,
         }
+    }
+}
+
+impl RescaleAbsoluteUniform for Cuboid {
+    fn rescale_absolute(&mut self, size_change: f64) {
+        self.length_x += size_change;
+        self.length_y += size_change;
+        self.length_z += size_change;
     }
 }

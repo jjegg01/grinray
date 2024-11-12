@@ -2,7 +2,7 @@ use core::f64;
 
 use cgmath::{MetricSpace, Vector2, Vector3, Zero};
 
-use super::{AABox, SDFObject, SURFACE_EPSILON};
+use super::{AABox, RescaleAbsoluteUniform, SDFObject, SURFACE_EPSILON};
 
 /// A cylinder with a given radius and length.
 ///
@@ -39,5 +39,12 @@ impl SDFObject for Cylinder {
             zlo: -self.radius - SURFACE_EPSILON,
             zhi: self.radius + SURFACE_EPSILON,
         }
+    }
+}
+
+impl RescaleAbsoluteUniform for Cylinder {
+    fn rescale_absolute(&mut self, size_change: f64) {
+        self.radius += size_change / 2.;
+        self.length += size_change / 2.;
     }
 }
