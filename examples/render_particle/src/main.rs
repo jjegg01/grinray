@@ -50,7 +50,8 @@ enum ParticleShape {
     SDFSphere,
     SDFCube,
     SDFCylinder,
-    SDFCapsule
+    SDFCapsule,
+    SDFCone
 }
 
 #[derive(ValueEnum, Clone)]
@@ -100,13 +101,14 @@ fn main() -> ExitCode {
         ParticleShape::SDFCube => apply_rounding!(sdf::Cuboid::new(2.0, 2.0, 2.0)),
         ParticleShape::SDFCylinder => apply_rounding!(sdf::Cylinder::new(1.0, 2.0)),
         ParticleShape::SDFCapsule => apply_rounding!(sdf::Capsule::new(1.0, 1.0)),
+        ParticleShape::SDFCone => apply_rounding!(sdf::Cone::new(1.0, 2.0)),
     };
     let particle_transform = match args.shape {
         ParticleShape::Sphere | ParticleShape::SDFSphere => {
             ObjectTransform::with_translation((0.0, 0.0, -3.0).into())
         }
         ParticleShape::Cube | ParticleShape::SDFCube => ObjectTransform::with_translation((0.0, 0.1, -4.0).into()),
-        ParticleShape::Cylinder | ParticleShape::SDFCylinder => ObjectTransform::with_translation((0.0, 0.1, -4.).into()),
+        ParticleShape::Cylinder | ParticleShape::SDFCylinder | ParticleShape::SDFCone => ObjectTransform::with_translation((0.0, 0.1, -4.).into()),
         ParticleShape::Hemisphere => ObjectTransform::new(
             Quaternion::from_axis_angle(Vector3::new(1., 0., -1.).normalize(), Deg(-135.)),
             (0.0, 0.0, -3.0).into(),

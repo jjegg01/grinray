@@ -1,12 +1,15 @@
 //! Objects defined by a signed distance function
 
 mod capsule;
+mod cone;
 mod cuboid;
 mod cylinder;
 mod round;
+pub mod sdf2d;
 mod sphere;
 
 pub use capsule::*;
+pub use cone::*;
 pub use cuboid::*;
 pub use cylinder::*;
 pub use round::*;
@@ -21,7 +24,7 @@ use super::{ObjectTransform, RTObject};
 // Distance at which we consider an SDF object to be hit
 const SURFACE_EPSILON: f64 = 1e-4;
 
-#[derive(Clone)]
+#[derive(Debug,Clone)]
 pub struct AABox {
     pub xlo: f64,
     pub xhi: f64,
