@@ -186,7 +186,7 @@ impl PerspectiveCamera {
         let max_depth = parameters.max_depth;
         // -- Actual calculation --
         // First determine the screen size in world coordinates
-        let screen_size_y = 2.0 * near * fov.to_radians().sin();
+        let screen_size_y = 2.0 * near * fov.to_radians().tan();
         // The size in x is determined by the output image aspect ratio
         let screen_size_x = screen_size_y * pixels.0 as f64 / pixels.1 as f64;
         // The size of each pixel cell on the projection plane
