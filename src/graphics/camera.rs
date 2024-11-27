@@ -17,6 +17,14 @@ pub trait Camera<T: Tracer> {
         let num_samples = self.get_samples();
         for iy in 0..pixels.1 {
             for ix in 0..pixels.0 {
+                // Debugging helper
+                // if ix == pixels.0 / 20 * 5 && iy == pixels.1 / 10 * 4 {
+                //     // Color one pixel red to calibrate the condition
+                //     buf[iy * pixels.0 + ix] = util::color_vec3_to_u32(&Vector3::new(1.0, 0., 0.));
+                //     continue;
+                //     // Debug message to break on
+                //     dbg!("!");
+                // }
                 let ray = self.build_screen_ray(ix, iy);
                 let mut color = Vector3::zero();
                 for _ in 0..num_samples {
