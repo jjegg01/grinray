@@ -39,7 +39,7 @@ impl SDFObject for Cone {
 impl RescaleAbsoluteUniform for Cone {
     fn rescale_absolute(&mut self, size_change: f64) {
         self.radius += size_change / 2.;
-        self.length += size_change / 2.;
+        self.length += size_change;
         self.inner = LineSegmentsRotationallyClosed::new(-self.length/2., vec![(self.radius, -self.length/2.).into()], self.length/2.).unwrap();
     }
 }
