@@ -1,5 +1,3 @@
-use core::f64;
-
 use cgmath::Vector3;
 
 use super::{sdf2d::{LineSegmentsRotationallyClosed, RotationallyClosedSDF}, AABox, RescaleAbsoluteUniform, SDFObject};
@@ -17,7 +15,12 @@ pub struct Cone {
 
 impl Cone {
     pub fn new(radius: f64, length: f64) -> Self {
-        let inner = LineSegmentsRotationallyClosed::new(-length/2., vec![(radius, -length/2.).into()], length/2.).unwrap();
+        // Create geometry as a rotational body of a 2d path
+        let inner = LineSegmentsRotationallyClosed::new(
+            -length/2., // Center of base plane
+            vec![(radius, -length/2.).into()], // Rim of base plane
+            length/2. // Tip of cone
+        ).unwrap();
         Self { radius, length, inner }
     }
 }

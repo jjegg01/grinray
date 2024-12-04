@@ -1,5 +1,6 @@
 //! Objects defined by a signed distance function
 
+mod shells;
 mod capsule;
 mod cone;
 mod cuboid;
@@ -8,6 +9,7 @@ mod round;
 pub mod sdf2d;
 mod sphere;
 
+pub use shells::*;
 pub use capsule::*;
 pub use cone::*;
 pub use cuboid::*;

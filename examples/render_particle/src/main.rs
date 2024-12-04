@@ -51,7 +51,8 @@ enum ParticleShape {
     SDFCube,
     SDFCylinder,
     SDFCapsule,
-    SDFCone
+    SDFCone,
+    SDFConeShell
 }
 
 #[derive(ValueEnum, Clone)]
@@ -102,18 +103,23 @@ fn main() -> ExitCode {
         ParticleShape::SDFCylinder => apply_rounding!(sdf::Cylinder::new(1.0, 2.0)),
         ParticleShape::SDFCapsule => apply_rounding!(sdf::Capsule::new(1.0, 1.0)),
         ParticleShape::SDFCone => apply_rounding!(sdf::Cone::new(1.0, 2.0)),
+        ParticleShape::SDFConeShell => apply_rounding!(sdf::ConeShell::new(1.0, 2.0, 0.75, 1.5).unwrap()),
     };
     let particle_transform = match args.shape {
         ParticleShape::Sphere | ParticleShape::SDFSphere => {
             ObjectTransform::with_translation((0.0, 0.0, -3.0).into())
         }
         ParticleShape::Cube | ParticleShape::SDFCube => ObjectTransform::with_translation((0.0, 0.1, -4.0).into()),
-        ParticleShape::Cylinder | ParticleShape::SDFCylinder | ParticleShape::SDFCone => ObjectTransform::with_translation((0.0, 0.1, -4.).into()),
+        ParticleShape::Cylinder | ParticleShape::SDFCylinder  => ObjectTransform::with_translation((0.0, 0.1, -4.).into()),
         ParticleShape::Hemisphere => ObjectTransform::new(
             Quaternion::from_axis_angle(Vector3::new(1., 0., -1.).normalize(), Deg(-135.)),
             (0.0, 0.0, -3.0).into(),
         ),
-        ParticleShape::SDFCapsule => ObjectTransform::new(Quaternion::from_angle_z(Deg(-45.)), (0.0, 0.6, -4.5).into())
+        ParticleShape::SDFCapsule => ObjectTransform::new(Quaternion::from_angle_z(Deg(-45.)), (0.0, 0.6, -4.5).into()),
+        ParticleShape::SDFConeShell | ParticleShape::SDFCone => ObjectTransform::new(
+            Quaternion::from_axis_angle(Vector3::new(1., 0., -1.).normalize(), Deg(-45.)),
+            (0.0, 0.45, -4.).into()
+        )
     };
     // Setup materials
     let plane_mat = CheckerboardMaterial::new((1.0, 1.0, 1.0).into(), Vector3::unit_x());
