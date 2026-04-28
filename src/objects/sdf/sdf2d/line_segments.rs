@@ -93,7 +93,9 @@ impl RotationallyClosedSDF for LineSegmentsRotationallyClosed {
                 // the next vertex and comparing to the last. We only count the intersection, if the
                 // last vertex and the next vertex are on opposite sides of the ray.
                 if (current_vertex.y - last_vertex.y).signum() != (current_vertex.y - next_vertex.y).signum() {
-                    sign *= -1.;
+                    if current_vertex.x > position.x {
+                        sign *= -1.;
+                    }
                 }
             }
             else if position.y == next_vertex.y {
