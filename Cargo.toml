@@ -4,7 +4,7 @@ members = ["examples/debug_tracer", "examples/optical-forces", "examples/render_
 
 [package]
 name = "grinray"
-version = "0.2.0-alpha"
+version = "0.2.0"
 edition = "2021"
 license = "MPL-2.0"
 
