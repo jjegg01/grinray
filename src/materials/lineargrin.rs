@@ -165,7 +165,16 @@ impl LinearGRINFresnelMaterial {
         let mut trial_ray = ray.clone(); // Current point and direction along the ray trajectory
         let mut trial_s = 0.; // Current arclength distance along the trajectory
         let mut trial_tau_2d = tau0.clone(); // Current tangent vector *in the 2D frame*
+        // In certain situation (typically rays hitting a sharp corner of the object),
+        // this approach can get stuck, so we add an emergency break
+        // TODO: Either find a way to make this loop more robust or make the loop counter configurable
+        let mut loop_counter = 0;
+        const MAX_LOOPS: usize = 100_000;
         let (exit_intersection, exit_tau) = loop {
+            if loop_counter > MAX_LOOPS {
+                report_lost_ray!(return None, "Detected stuck loop in linear GRIN material");
+            }
+            loop_counter += 1;
             // Intersect trial ray with object to get approximation for arc length
             // Note: This is a bit more intricate than it might look. We want to
             // move along the trajectory of the ray so we test first for an
