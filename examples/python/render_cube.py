@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Simple demo script to show how to render a cube with GRINRAY
+
 import grinray
 import numpy as np
 from PIL import Image, ImageOps
@@ -7,7 +9,7 @@ from PIL import Image, ImageOps
 # Create a cube with a diffusive material
 particle = grinray.Cuboid(2.0,2.0,2.0)
 particle_transform = grinray.ObjectTransform((0.0,0.2,-3.0), ((0.0,1.0,0.0), np.pi/4))
-particle_material = grinray.LinearGRINFresnelMaterial(1.4, (0.0, 0.1, 0.0), 1.0)
+particle_material = grinray.LinearGRINFresnelMaterial(1.4, (0.0, 0.1, 0.0))
 # Create a plane with a test pattern, so we can actually see something
 plane_material = grinray.CheckerboardMaterial((1.0,)*3, (1.0,0.0,0.0))
 plane = grinray.Plane()

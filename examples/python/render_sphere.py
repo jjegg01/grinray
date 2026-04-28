@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+# Simple demo script to show how to render a sphere with GRINRAY
+
 import grinray
 import numpy as np
 from PIL import Image, ImageOps
 
 # Create GRIN sphere (refractive index 1.4 at the center and +- 0.1 along the z axis)
-sphere_material = grinray.LinearGRINFresnelMaterial(1.4, (0.0, 0.1, 0.0), 1.0)
+sphere_material = grinray.LinearGRINFresnelMaterial(1.4, (0.0, 0.1, 0.0))
 sphere = grinray.Sphere(1.0)
 sphere_transform = grinray.ObjectTransform((0.0,0.0,-2.0))
 # Create a plane with a test pattern, so we can actually see something
