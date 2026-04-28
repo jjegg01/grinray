@@ -92,7 +92,11 @@ impl ObjectTransform {
         }
     }
 
-    pub(crate) fn point_to_world_frame(&self, point: &Vector3<f64>) -> Vector3<f64> {
+    pub fn point_to_object_frame(&self, point: &Vector3<f64>) -> Vector3<f64> {
+        self.rotation.conjugate().rotate_vector(point - self.translation)
+    }
+
+    pub fn point_to_world_frame(&self, point: &Vector3<f64>) -> Vector3<f64> {
         self.rotation.rotate_vector(*point) + self.translation
     }
 }

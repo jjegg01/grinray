@@ -72,11 +72,11 @@ impl LinearGRINFresnelMaterial {
         self.gradient_strength = gradient.magnitude();
     }
 
-    // Get refractive index at a specific point in space (needs reference point from geometry to
-    // locate the origin of the gradient profile)
-    fn index_at_point(&self, point: &Vector3<f64>, origin_point: &Vector3<f64>) -> f64 {
+    // Get refractive index at a specific point in space (needs transformation of object)
+    fn index_at_point(&self, point: &Vector3<f64>, transform: &ObjectTransform) -> f64 {
+        let point_object_frame = transform.point_to_object_frame(point);
         self.origin_index
-            + self.gradient_strength * self.gradient_dir.dot(point - origin_point)
+            + self.gradient_strength * self.gradient_dir.dot(point_object_frame)
     }
 
     // Analytical ray trajectory for position and tangent at a given arc length in GRIN materials
@@ -229,7 +229,7 @@ impl LinearGRINFresnelMaterial {
         }
 
         // Interaction at the (potential) exit site
-        let exit_index = self.index_at_point(&exit_intersection.point, &transform.translation);
+        let exit_index = self.index_at_point(&exit_intersection.point, &transform);
         match FresnelMaterial::fresnel_interaction(
             exit_index,
             world.refractive_index,
@@ -298,7 +298,7 @@ impl<T: Tracer> Material<T> for LinearGRINFresnelMaterial {
             )
         }
         // Calculate refractive index at the intersection point
-        let index = self.index_at_point(&intersection.point, &transform.translation);
+        let index = self.index_at_point(&intersection.point, &transform);
         // Calculate rotation that aligns the gradient direction with the y-axis
         let gradient_reference_rotation = Self::calc_reference_rotation(self.gradient_dir, transform);
         // Calculate Fresnel interaction at the entry point
