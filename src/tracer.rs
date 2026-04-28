@@ -86,8 +86,14 @@ pub struct FullTracer {
     traces: Vec<Vec<TracePoint>>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FullTraceID(usize);
+
+impl Into<usize> for FullTraceID {
+    fn into(self) -> usize {
+        self.0
+    }
+}
 
 impl Tracer for FullTracer {
     type TraceID = FullTraceID;

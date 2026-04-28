@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+
+import os.path
+import subprocess
+import argparse
+
+parser = argparse.ArgumentParser(description="Run a parameter scan for the forces acting on a GRIN particle with cap shape.")
+parser.add_argument("--scan-increments", default=20, type=int, help="Number of increments to make in GRIN strength (i.e., the total number of samples is this number plus one)")
+parser.add_argument("--max-strength", default=0.01, type=float, help="Maximum GRIN strength in µm^-1")
+parser.add_argument("outdir")
+
+args = parser.parse_args()
+
+runs = []
+for i in range(args.scan_increments + 1):
+    strength = i * args.max_strength / (args.scan_increments)
+    # The gradient is always taken from the origin of the particle. The cap shape in GRINRAY has its
+    # origin on the flat end of the particle, so we need to shift the reference index to make sure the
+    # refractive index at half height stays the same (adjustment = strength * radius of cap / 2)
+    reference_index = 1.505 - strength * 2.5
+    runs.append(["cargo", "run", "--release", "--", "--shape", "hemisphere-shell",
+                    "--grin-strength", str(strength), "--particle-refractive-index", str(reference_index),
+                    "scan", os.path.join(args.outdir, f"{strength:0.4f}.csv")
+                    ])
+
+procs = []
+while runs:
+    run = runs.pop()
+    procs.append(subprocess.Popen(run))
+    while len(procs) >= 10:
+        os.wait()
+        procs = [proc for proc in procs if proc.poll() is None]
+
+for proc in procs:
+    proc.wait()

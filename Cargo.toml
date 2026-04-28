@@ -1,6 +1,6 @@
 # Some examples are built as separate crates
 [workspace]
-members = ["examples/debug_tracer", "examples/render_particle"]
+members = ["examples/debug_tracer", "examples/optical-forces", "examples/render_particle"]
 
 [package]
 name = "grinray"
