@@ -1,6 +1,8 @@
 mod line_segments;
+mod mixed_segments;
 
 pub use line_segments::*;
+pub use mixed_segments::*;
 
 use cgmath::{InnerSpace, Vector2, Vector3, Zero};
 

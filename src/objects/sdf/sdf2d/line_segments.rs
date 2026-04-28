@@ -63,7 +63,7 @@ impl LineSegmentsRotationallyClosed {
 
 /// Helper function to calculate the distance of point C from the line segment enclosed by points
 /// A and B
-fn distance_from_line_segment(a: &Vector2<f64>, b: &Vector2<f64>, c: &Vector2<f64>) -> f64 {
+pub(crate) fn distance_from_line_segment(a: &Vector2<f64>, b: &Vector2<f64>, c: &Vector2<f64>) -> f64 {
     let ac = c - a;
     let ab = b - a;
     let t = (ac.dot(ab) / ab.dot(ab)).clamp(0., 1.);
@@ -125,6 +125,6 @@ impl RotationallyClosedSDF for LineSegmentsRotationallyClosed {
     }
 
     fn bounding_box(&self) -> (f64, (f64,f64)) {
-        self.bbox.clone()
+        self.bbox
     }
 }

@@ -5,6 +5,7 @@ mod capsule;
 mod cone;
 mod cuboid;
 mod cylinder;
+mod hemisphere;
 mod round;
 pub mod sdf2d;
 mod sphere;
@@ -14,6 +15,7 @@ pub use capsule::*;
 pub use cone::*;
 pub use cuboid::*;
 pub use cylinder::*;
+pub use hemisphere::*;
 pub use round::*;
 pub use sphere::*;
 
